@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-namespace BIF.SWE1.Interfaces
+namespace _Server.Interfaces
 {
     public interface IRequest
     {
