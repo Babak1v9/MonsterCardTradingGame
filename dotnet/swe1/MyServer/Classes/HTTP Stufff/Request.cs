@@ -17,7 +17,6 @@ namespace _Server.Classes {
         private byte[] _contentBytes;
 
         public Request(string rawRequest) {
-            Console.WriteLine("Raw Request in Constructer: " + rawRequest);
             _rawText = rawRequest;
             SplitRawRequest();
         }
@@ -75,21 +74,15 @@ namespace _Server.Classes {
 
         private void SplitRawRequest() {
             var requestLines = _rawText.Split(Environment.NewLine);
-            Console.WriteLine(" requestLines: " + requestLines);
             var bodyStartIndex = Array.IndexOf(requestLines, String.Empty);
-            Console.WriteLine(" bodyStartIndex: " + bodyStartIndex);
             var requestStart = requestLines[0];
-            Console.WriteLine(" requestStart: " + requestStart);
             var headerLines = new string[bodyStartIndex - 1];
-            Console.WriteLine(" headerLines: " + headerLines);
             var bodyLines = new string[requestLines.Length - bodyStartIndex - 1];
-            Console.WriteLine(" bodyLines: " + bodyLines);
 
             Array.Copy(requestLines, 1, headerLines, 0, bodyStartIndex - 1);
             Array.Copy(requestLines, bodyStartIndex + 1, bodyLines, 0, requestLines.Length - bodyStartIndex - 1);
             
             var methodAndUrl = requestStart.Split(" ", 3);
-            Console.WriteLine(" methodAndUrl: " + methodAndUrl);
             if (methodAndUrl.Length < 3) throw new InvalidDataException("Method/Url length invalid!");
 
             string[] validMethods = {"GET", "POST", "PUT", "PATCH", "DELETE"};
@@ -98,10 +91,6 @@ namespace _Server.Classes {
             _url = new Url(methodAndUrl[1]);
             _protocol = methodAndUrl[2];
             _headers = ExtractHeaders(headerLines);
-            Console.WriteLine(" _method: " + _method);
-            Console.WriteLine(" _url: " + _url);
-            Console.WriteLine(" _protocol: " + _protocol);
-            Console.WriteLine(" _headers: " + _headers);
 
             //if body empty
             if (!bodyLines[0].Equals(String.Empty))  {

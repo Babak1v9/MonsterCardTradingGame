@@ -5,6 +5,10 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using _Server.Classes;
+using _Server.Interfaces;
+using MyServer.Classes.RequestHandlers;
+using System.Security.Cryptography;
+using MyServer.Classes.DB_Stuff;
 
 namespace _MyServer.Util {
 
@@ -51,18 +55,27 @@ namespace _MyServer.Util {
 
             var readDataString = Encoding.UTF8.GetString(memoryStream.ToArray(), 0, (int)memoryStream.Length);
             var request = new Request(readDataString);
-     
-            Console.WriteLine($"Got Request with Method: {request.Method}");
-            Console.WriteLine($"Raw Request: {readDataString}");
-
             var response = new Response { ContentType = "text/plain", StatusCode = 200 };
 
-            response.AddHeader("Connection", "Close");
-            response.SetContent($"Hi Mr. Client, this is Server{Environment.NewLine}" +
-                                $"Your User Agent: {request.UserAgent}.{Environment.NewLine}" +
-                                $"Your Header Count: {request.HeaderCount}");
+            var firstSegment = request.Url.Segments[0];
+            IMyRequestHandler requestHandler = firstSegment switch {
+                "users" => new UserRequestHandler(request),
+                "packages" => new PackagesRequestHandler(request),
+                "cards" => new CardsRequestHandler(request),
+                "deck" => new DeckRequestHandler(request),
+                "score" => new ScoreRequestHandler(request),
+                "sessions" => new SessionRequestHandler(request),
+                "stats" => new StatsRequestHandler(request),
+                "tradings" => new TradingRequestHandler(request),
+                "transactions" => new TransactionsRequestHandler(request),
+                "battles" => new BattlesRequestHandler(request),
+                _ => new UnknownRequestHandler(request)
 
-            response.Send(stream);
+            };
+
+            requestHandler.ExecuteTask();
+            requestHandler.SendResponse(stream);
+
             clientSocket.Close();
         }
     }
