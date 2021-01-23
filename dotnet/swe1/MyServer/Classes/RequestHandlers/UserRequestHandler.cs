@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using _Server.Classes;
 using _Server.Interfaces;
 using MyServer.Classes.Data;
@@ -33,14 +31,8 @@ namespace MyServer.Classes.RequestHandlers {
             switch (_request.Method) {
                 case "GET":
                     if (_request.Url.Segments.Length == 1) {
-                        Console.WriteLine("in get");
 
-                        var users = _request.Url.Parameter.ContainsKey("deck") && _request.Url.Parameter["deck"].Equals(true)
-                            ? _userDatabaseController.GetAll(true) : _userDatabaseController.GetAll();
-
-                        Console.WriteLine("users: " + users);
-
-                        //code 400 missing if something is invalid
+                        var users = _userDatabaseController.GetUsers();
 
                         if (users == null) {
                             _response.StatusCode = 404;
@@ -95,22 +87,21 @@ namespace MyServer.Classes.RequestHandlers {
                     try {
                         var userToCreate = JsonSerializer.Deserialize<User>(_request.ContentString);
                         _userDatabaseController.Insert(userToCreate.Username, userToCreate.Password);
-                        var createdUserForResponse = _userDatabaseController.GetByUserName(userToCreate.Username);
-                        _responseJson = JsonSerializer.Serialize(createdUserForResponse);
                         _response.StatusCode = 200;
-                        _response.SetContent(_responseJson);
+                        _response.SetContent("User created.");
                     }
                     catch (Exception e) {
                         Console.WriteLine("e message: " + e.Message);
                         Console.WriteLine(" e source: " + e.Source);
                         Console.WriteLine("e.stacktrace: " + e.StackTrace);
                         _response.StatusCode = 400;
-                        _response.SetContent("Request body invalid");
+                        _response.SetContent("User already exists or password incorrect");
                     }
                     break;
 
-                case "DELETE":
-                    //todo query delete - optional 
+                default:
+                    _response.StatusCode = 400;
+                    _response.SetContent("Invalid HTTP Method");
                     break;
             }
         }

@@ -1,12 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Text;
-using System.Text.Json;
 using _Server.Classes;
 using _Server.Interfaces;
-using MyServer.Classes.Battle_Stuff;
-using MyServer.Classes.Data;
 using MyServer.Classes.DB_Stuff;
 using Newtonsoft.Json;
 
@@ -39,10 +34,8 @@ namespace MyServer.Classes.RequestHandlers {
                             _response.SetContent("Unauthorized");
                             return;
                         }
-                        Console.WriteLine(_request.ContentString);
-                      
+
                         var packageId = _deckDatabaseController.createPackage();
-                        Console.WriteLine(packageId);
 
                         var cardJsons = _request.ContentString.Split("}, {");
                         cardJsons[0] = (cardJsons[0].Replace("[", "") + "}");
@@ -97,7 +90,7 @@ namespace MyServer.Classes.RequestHandlers {
 
                 default:
                     _response.StatusCode = 400;
-                    _response.SetContent("Wrong Http Method");
+                    _response.SetContent("Invalid Http Method");
                     break;
             }
         }

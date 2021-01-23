@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using _Server.Classes;
 using _Server.Interfaces;
@@ -35,23 +31,14 @@ namespace MyServer.Classes.RequestHandlers {
                     try {
                         var userToBeLoggedIn = JsonSerializer.Deserialize<User>(_request.ContentString);
                         var returnedUser = _userDatabaseController.GetByUserName(userToBeLoggedIn.Username);
-                        var test = returnedUser.Username;
-                        var test2 = returnedUser.Password;
-                        var test3 = returnedUser.Salt;
-                        Console.WriteLine("fetchedUser " + test + " " + test2 + " " + test3);
 
                         var sha256 =_userDatabaseController.CalcSHA256(userToBeLoggedIn.Password, returnedUser.Salt);
-                        Console.WriteLine("new hash: " + sha256);
-                        Console.WriteLine("old hash: " + returnedUser.Password);
 
                         if (sha256 == returnedUser.Password) {
-                            Console.WriteLine("User login successful.");
                             _response.StatusCode = 200;
                             _response.SetContent("User login successful.");
 
                         } else {
-
-                            Console.WriteLine("Password or User incorrect.");
                             _response.StatusCode = 401;
                             _response.SetContent("User login failed.");
 

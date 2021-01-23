@@ -3,23 +3,20 @@ using MyServer.Classes.Cards.Monster;
 using Npgsql;
 using System;
 using System.Collections.Generic;
-using System.Text;
-using System.Text.Json;
+using System.Linq;
 
 namespace MyServer.Classes.DB_Stuff {
     class DeckDataBaseController {
 
-        private UserDatabaseController _userDatabaseController = new UserDatabaseController();
-
         private const string ConnectionString = "Server=127.0.0.1;Port=5432;Database=SWE;User ID=postgres;Password=swe;";
 
-        public List<Card> GetByUserId(String userId) {
+        public List<Card> ShowAllCards(String userId) {
 
             var fetchedCards = new List<Card>();
             using var connection = new NpgsqlConnection(ConnectionString);
             connection.Open();
 
-            using var command = new NpgsqlCommand("select * from \"DECK\" join \"DECK_CARD\" using (deck_id) join \"CARD\" using (card_id) where user_id::text = :userId ", connection);
+            using var command = new NpgsqlCommand("select * from \"STACK\" join \"CARDS\" using (id) where user_id::text = :userId ", connection);
 
             command.Parameters.AddWithValue("userId", userId);
             var reader = command.ExecuteReader();
@@ -29,17 +26,23 @@ namespace MyServer.Classes.DB_Stuff {
                 var cardClassToUse = reader["name"].ToString() ?? string.Empty;
                 var elementTypeToUse = int.Parse(reader["element_type"].ToString() ?? string.Empty);
 
+                if (!cardClassToUse.Contains("Spell") && elementTypeToUse == 0) {
+                    cardClassToUse = cardClassToUse.Insert(0, "Regular");
+                }
+
+
                 cardClassToUse = elementTypeToUse switch {
 
                     Card.ElementTypeFire => cardClassToUse.Remove(0, 4),
-                    Card.ElementTypeNormal => cardClassToUse.Remove(0, 6),
+                    Card.ElementTypeNormal => cardClassToUse.Remove(0, 7),
                     Card.ElementTypeWater => cardClassToUse.Remove(0, 5),
                     _ => cardClassToUse
                 };
 
                 var currentCard = SwitchCardClassFromName(cardClassToUse, elementTypeToUse);
 
-                currentCard.Name = reader["name"].ToString();
+
+                currentCard.Name = reader["name"].ToString() ?? string.Empty;
                 currentCard.CardType = int.Parse(reader["card_type"].ToString() ?? string.Empty);
                 currentCard.ElementType = int.Parse(reader["element_type"].ToString() ?? string.Empty);
                 currentCard.Damage = float.Parse(reader["damage"].ToString() ?? string.Empty);
@@ -74,7 +77,7 @@ namespace MyServer.Classes.DB_Stuff {
 
             return returnCard;
         }
-
+        
         public object createPackage() {
 
             using var connection = new NpgsqlConnection(ConnectionString);
@@ -93,21 +96,8 @@ namespace MyServer.Classes.DB_Stuff {
 
         public void createCard(string cardId, string cardName, string cardDamage, string cardType, string cardElement, object package) {
 
-            var newCardId = cardId;
-            var newCardName = cardName;
-            var newCardDamage = cardDamage;
-            var newCardType = cardType;
-            var newCardElemetn = cardElement;
-            var packageId = package;
 
-
-            Console.WriteLine(newCardId);
-            Console.WriteLine(cardName);
-            Console.WriteLine(cardDamage);
-            Console.WriteLine(packageId);
-
-
-            string packageStr = packageId.ToString();
+            string packageStr = package.ToString();
             Console.WriteLine(package);
 
             using var connection = new NpgsqlConnection(ConnectionString);
@@ -115,44 +105,70 @@ namespace MyServer.Classes.DB_Stuff {
 
             connection.Open();
 
-            command.Parameters.AddWithValue("id", newCardId);
-            command.Parameters.AddWithValue("name", newCardName);
-            command.Parameters.AddWithValue("damage", newCardDamage);
+            command.Parameters.AddWithValue("id", cardId);
+            command.Parameters.AddWithValue("name", cardName);
+            command.Parameters.AddWithValue("damage", cardDamage);
             command.Parameters.AddWithValue("card_type", cardType);
             command.Parameters.AddWithValue("element_type", cardElement);
-            command.Parameters.AddWithValue("pack_id", packageId);
-
+            command.Parameters.AddWithValue("pack_id", packageStr);
 
             var cardIdObject = command.ExecuteScalar();
-
         }
-
-        public void acquirePackage(string tok) {
-
-            //string card_id;
-            //string deck_id;
-            //string user_id;
-            string token = tok;
-
-            var user = _userDatabaseController.GetByToken(token);
-            //user_id = user.Id;
-            //Console.WriteLine("user_id");
+        
+        public bool acquirePackage(string userId) {
 
             using var connection = new NpgsqlConnection(ConnectionString);
             using var command = new NpgsqlCommand("select * from \"PACKAGES\" FETCH FIRST ROW ONLY", connection);
 
             connection.Open();
             var packageId = command.ExecuteScalar();
+            
+            if (packageId != null) {
+                //get each card which is part of the pack
+                List<string> Cards = new List<string>();
 
-            string tempid = "93460d62 - b4a7 - 4035 - a342 - 9b4776ea5380";
-            using var command2 = new NpgsqlCommand("select * from \"CARDS\" where pack_id = '" + tempid + "'", connection);
+                for (int i = 0; i < 5; i++) {
+                    using var command2 = new NpgsqlCommand("select id from \"CARDS\" where pack_id = '" + packageId + "' offset " + i + "", connection);
+                    var cardId = command2.ExecuteScalar();
+                    string tmp = cardId.ToString();
+                    Cards.Add(tmp);
 
-            // card id von CARDS > DECK_CARD, von dort hole ich DECK_ID -> DECK, IN DECK USERID hinzufügen
+                }
 
+                var firstCard = Cards.ElementAt(0);
+                var secondCard = Cards.ElementAt(1);
+                var thirdCard = Cards.ElementAt(2);
+                var fourthCard = Cards.ElementAt(3);
+                var fifthCard = Cards.ElementAt(4);
 
-            //using var delCommand = new NpgsqlCommand("delete from \"PACKAGES\" where pack_id = '" + packageId + "'", connection);
-            //delCommand.ExecuteNonQuery();
+                for (int i = 0; i < 5; i++) {
 
+                    string cardId = "";
+
+                    switch (i) {
+                        case 0: cardId = firstCard; break;
+                        case 1: cardId = secondCard; break;
+                        case 2: cardId = thirdCard; break;
+                        case 3: cardId = fourthCard; break;
+                        case 4: cardId = fifthCard; break;
+                        default: Console.WriteLine("Invalid CardId"); break;
+
+                    };
+
+                    using var command3 = new NpgsqlCommand("insert into \"STACK\" (user_id, card_id) values ('" + userId + "', '" + cardId + "')", connection);
+
+                    command.Parameters.AddWithValue("user_id", userId);
+                    command.Parameters.AddWithValue("card_id", cardId);
+                    command3.ExecuteNonQuery();
+                }
+
+                using var delCommand = new NpgsqlCommand("delete from \"PACKAGES\" where pack_id = '" + packageId + "'", connection);
+                delCommand.ExecuteNonQuery();
+                return true;
+
+            } else {
+                return false;
+            }
 
         }
 

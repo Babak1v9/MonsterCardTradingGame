@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using _Server.Classes;
 using _Server.Interfaces;
 using MyServer.Classes.DB_Stuff;
@@ -26,32 +24,45 @@ namespace MyServer.Classes.RequestHandlers {
             _response = new Response { ContentType = "application/Json" };
         }
 
-        public void verifyUserToken() {
-
-        }
-
         public void ExecuteTask() {
             switch (_request.Method) {
                 case "POST":
                     try {
-                        Console.WriteLine("test");
 
                         if (_request.Url.Segments[1] == "packages") {
 
                             string token = _request.Headers["authorization"];
-                            Console.WriteLine(token);
-                            var tokenExists = _userDatabaseController.verifyUserToken(token);
 
-                            if (!_request.Headers.ContainsKey("authorization") || _request.Headers["authorization"] != $"Basic test-mtcgToken") {
+                            var tokenWithoutBasic = token.Remove(0, 6);
+                            var tokenExists = _userDatabaseController.VerifyUserToken(tokenWithoutBasic);
+
+                            if (!_request.Headers.ContainsKey("authorization") || tokenExists != true) {
                                 _response.StatusCode = 401;
                                 _response.SetContent("Unauthorized");
                                 return;
                             }
+                            var user = _userDatabaseController.GetByToken(token);
+                            int userCoins = _userDatabaseController.GetCoins(tokenWithoutBasic);
 
-                            _deckDatabaseController.acquirePackage("Basic kenboec-mtcgToken");
+                            if (userCoins >= 5) {
 
-                            _response.StatusCode = 200;
-                            _response.SetContent("Package acquired");
+                                var userId = user.Id;
+                                bool packageAcquired = _deckDatabaseController.acquirePackage(userId);
+                                _userDatabaseController.PackageAcquired(tokenWithoutBasic);
+
+                                if (packageAcquired == false) {
+                                    _response.StatusCode = 400;
+                                    _response.SetContent("No Packages available.");
+                                    break;
+                                } else {
+                                    _response.StatusCode = 200;
+                                    _response.SetContent("Package acquired");
+                                }
+
+                            } else {
+                                _response.StatusCode = 400;
+                                _response.SetContent("Error, not enough Coins.");
+                            }
                         } else {
                             _response.StatusCode = 400;
                             _response.SetContent("Error: Wrong URL");
@@ -61,7 +72,7 @@ namespace MyServer.Classes.RequestHandlers {
                         Console.WriteLine(" e source: " + e.Source);
                         Console.WriteLine("e.stacktrace: " + e.StackTrace);
                         _response.StatusCode = 400;
-                        _response.SetContent("Request body invalid");
+                        _response.SetContent("Invalid Request");
                     }
                     break;
 

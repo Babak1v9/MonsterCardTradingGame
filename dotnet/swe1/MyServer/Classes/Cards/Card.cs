@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using _Server.Classes;
-using _Server.Interfaces;
+﻿
 
 namespace MyServer.Classes.Battle_Stuff {
     class Card {

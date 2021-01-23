@@ -7,8 +7,6 @@ using System.Threading;
 using _Server.Classes;
 using _Server.Interfaces;
 using MyServer.Classes.RequestHandlers;
-using System.Security.Cryptography;
-using MyServer.Classes.DB_Stuff;
 
 namespace _MyServer.Util {
 
@@ -56,8 +54,9 @@ namespace _MyServer.Util {
             var readDataString = Encoding.UTF8.GetString(memoryStream.ToArray(), 0, (int)memoryStream.Length);
             var request = new Request(readDataString);
             var response = new Response { ContentType = "text/plain", StatusCode = 200 };
-
+            
             var firstSegment = request.Url.Segments[0];
+
             IMyRequestHandler requestHandler = firstSegment switch {
                 "users" => new UserRequestHandler(request),
                 "packages" => new PackagesRequestHandler(request),

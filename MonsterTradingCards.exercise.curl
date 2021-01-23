@@ -56,8 +56,7 @@ echo.
 
 REM --------------------------------------------------
 echo 4) acquire packages kienboec
-curl -X POST http://localhost:4040/transactions/packages --header "Content-Type: application/json" --header "Authorization: Basic kienboec-mtcgToken" -d ""
-echo.
+++echo.
 curl -X POST http://localhost:4040/transactions/packages --header "Content-Type: application/json" --header "Authorization: Basic kienboec-mtcgToken" -d ""
 echo.
 curl -X POST http://localhost:4040/transactions/packages --header "Content-Type: application/json" --header "Authorization: Basic kienboec-mtcgToken" -d ""

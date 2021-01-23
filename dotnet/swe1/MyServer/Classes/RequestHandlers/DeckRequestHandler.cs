@@ -1,27 +1,35 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using _Server.Classes;
 using _Server.Interfaces;
+using MyServer.Classes.DB_Stuff;
 
 namespace MyServer.Classes.RequestHandlers {
     class DeckRequestHandler : IMyRequestHandler {
 
-        public DeckRequestHandler(Request request) {
-            return;
+        private Request _request;
+        private Response _response;
+        private string _responseJson;
+        private DeckDataBaseController _deckDatabaseController = new DeckDataBaseController();
+        private UserDatabaseController _userDatabaseController = new UserDatabaseController();
+
+        public Request Request => _request;
+
+        public Response Response {
+            get => _response;
+            set { _response = value; }
         }
 
-        public Request Request => throw new NotImplementedException();
-
-        public Response Response { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-
+        public DeckRequestHandler(Request request) {
+            _request = request;
+            _response = new Response { ContentType = "application/Json" };
+        }
         public void ExecuteTask() {
             throw new NotImplementedException();
         }
 
         public void SendResponse(Stream stream) {
-            throw new NotImplementedException();
+            _response.Send(stream);
         }
     }
 }

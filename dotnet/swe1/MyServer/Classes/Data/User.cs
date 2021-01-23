@@ -1,7 +1,5 @@
 ﻿using MyServer.Classes.Battle_Stuff;
-using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace MyServer.Classes.Data {
      class User {

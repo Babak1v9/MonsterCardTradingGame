@@ -14,14 +14,13 @@ namespace MyServer.Classes {
         private const string connectionString = "Server=127.0.0.1;Port=5432;Database=SWE;User ID=postgres;Password=swe;";
         private const string pepper = "NotHackable69420";
 
-        public List<User> GetAll(bool deckFlag = false, bool showPasswordFlag = false) {
+        public List<User> GetUsers() {
 
-            var fetchedUsers = new List<User>();
+            var fetchedUser = new List<User>();
 
             using var connection = new NpgsqlConnection(connectionString);
             connection.Open();
-            //todo check if @ can be used
-            //take token out?
+ 
             using var command = new NpgsqlCommand("select user_id, username, name, token, bio, image, coins, games_played from \"USER\"", connection);
             using var reader = command.ExecuteReader();
             while (reader.Read()) {
@@ -37,15 +36,41 @@ namespace MyServer.Classes {
                     GamesPlayed = int.Parse(reader["games_played"].ToString() ?? string.Empty)
                 };
 
-                if (deckFlag) {
-
-                    currentUser.Deck = _deckDatabaseController.GetByUserId(reader["user_id"].ToString());
-                }
-
-                fetchedUsers.Add(currentUser);
+                fetchedUser.Add(currentUser);
             }
 
-            return fetchedUsers;
+            return fetchedUser;
+        }
+
+        public User GetUserCards(string userId) {
+
+            var user = new User();
+
+            using var connection = new NpgsqlConnection(connectionString);
+            connection.Open();
+
+            using var command = new NpgsqlCommand("select user_id, username, name, token, bio, image, coins, games_played from \"USER\"", connection);
+            using var reader = command.ExecuteReader();
+            while (reader.Read()) {
+
+                var currentUser = new User {
+                    Id = reader["user_id"].ToString(),
+                    Username = reader["username"].ToString(),
+                    Name = reader["name"].ToString(),
+                    Token = reader["token"].ToString(),
+                    Bio = reader["bio"].ToString(),
+                    Image = reader["image"].ToString(),
+                    Coins = int.Parse(reader["coins"].ToString() ?? string.Empty),
+                    GamesPlayed = int.Parse(reader["games_played"].ToString() ?? string.Empty)
+                };
+
+
+                currentUser.Deck = _deckDatabaseController.ShowAllCards(reader["user_id"].ToString());
+                user = currentUser;
+            }
+
+            return user;
+
         }
 
         private string GenerateSalt() {
@@ -77,7 +102,6 @@ namespace MyServer.Classes {
 
         public User GetByToken(string Token, bool deckFlag = false) { 
 
-            Console.WriteLine("in getbytoken method: " + Token);
             var fetchedUser = new User();
             var tokenWithoutBasic = Token.Remove(0, 6);
 
@@ -106,7 +130,7 @@ namespace MyServer.Classes {
             fetchedUser.GamesPlayed = int.Parse(reader["games_played"].ToString() ?? string.Empty);
 
             if (deckFlag) {
-                fetchedUser.Deck = _deckDatabaseController.GetByUserId(fetchedUser.Id);
+                fetchedUser.Deck = _deckDatabaseController.ShowAllCards(fetchedUser.Id);
             }
 
             return fetchedUser;
@@ -142,7 +166,7 @@ namespace MyServer.Classes {
             returnedUser.GamesPlayed = int.Parse(reader["games_played"].ToString() ?? string.Empty);
 
             if (deckFlag) {
-                returnedUser.Deck = _deckDatabaseController.GetByUserId(returnedUser.Id);
+                returnedUser.Deck = _deckDatabaseController.ShowAllCards(returnedUser.Id);
             }
 
             return returnedUser;
@@ -157,7 +181,6 @@ namespace MyServer.Classes {
             //hash and salt pw
             string salt = GenerateSalt();
             var hashedPassword = CalcSHA256(password, salt);
-            Console.WriteLine("hash: " + hashedPassword);
             
             //token
             var tokenBuilder = new StringBuilder();
@@ -170,8 +193,7 @@ namespace MyServer.Classes {
             command.Parameters.AddWithValue("token", token);
             command.Parameters.AddWithValue("salt", salt);
 
-            var RowsAffected = command.ExecuteNonQuery();
-            Console.WriteLine("num of rows changed: " + RowsAffected);
+            command.ExecuteNonQuery();
         }
 
         public void Update(User user, string userToUpdateName) {
@@ -180,36 +202,48 @@ namespace MyServer.Classes {
             using var command = new NpgsqlCommand("update \"USER\" set name = :name, bio = :bio, image = :image where username=:userName", connection);
             connection.Open();
 
-            // if user.bio == null ...
-
             command.Parameters.AddWithValue("name", user.Name);
             command.Parameters.AddWithValue("bio", user.Bio);
             command.Parameters.AddWithValue("image", user.Image);
             command.Parameters.AddWithValue("userName", userToUpdateName);
 
-            var RowsAffected = command.ExecuteNonQuery();
-            Console.WriteLine("num of rows changed: " + RowsAffected);
-
+            command.ExecuteNonQuery();
         }
-
-        public bool verifyUserToken(string token) {
+        
+        public bool VerifyUserToken(string token) {
 
             using var connection = new NpgsqlConnection(connectionString);
             using var command = new NpgsqlCommand("select 1 from \"USER\" where token = '" + token + "' limit 1", connection);
             connection.Open();
 
             var doesExist = command.ExecuteScalar();
-            Console.WriteLine(doesExist);
+            var myVerifier = doesExist != null ? true : false;
 
-            /*if (doesExist == "1") {
-                return true;
+            return myVerifier;
+        }
 
-            } else {
-                return false;
-            }*/
-            return true;
-            
+        public int GetCoins(string token) {
 
+            using var connection = new NpgsqlConnection(connectionString);
+            using var command = new NpgsqlCommand("select coins from \"USER\" where token =:token", connection);
+            connection.Open();
+
+            command.Parameters.AddWithValue("token", token);
+            var tmpObject = command.ExecuteScalar();
+            int userCoins = (int)tmpObject;
+
+            return userCoins;
+        }
+
+        public void PackageAcquired(string token) {
+
+            using var connection = new NpgsqlConnection(connectionString);
+            using var command = new NpgsqlCommand("update \"USER\" set coins = coins -5 where token =:token", connection);
+            connection.Open();
+
+            command.Parameters.AddWithValue("token", token);
+            command.ExecuteNonQuery();
+           
         }
     }
 }
