@@ -1,14 +1,14 @@
-﻿
-using _Server.Interfaces;
+﻿using _Server.Interfaces;
 using _Server.Classes;
 using System.IO;
+using System;
 
 namespace MyServer.Classes.RequestHandlers {
     class BattlesRequestHandler : IMyRequestHandler {
 
         private Request _request;
         private Response _response;
-        private UserDatabaseController UserDBController = new UserDatabaseController();
+        private UserDatabaseController userDBController = new UserDatabaseController();
         public Request Request => _request;
 
         public Response Response {
@@ -21,25 +21,32 @@ namespace MyServer.Classes.RequestHandlers {
         }
 
         public void ExecuteTask() {
-            if (!_request.Headers.ContainsKey("authorization")) {
-                _response.StatusCode = 400;
-                _response.SetContent("unauthorized");
+            string token = _request.Headers["authorization"];
+
+            var tokenWithoutBasic = token.Remove(0, 6);
+            var tokenExists = userDBController.VerifyUserToken(tokenWithoutBasic);
+
+            if (!_request.Headers.ContainsKey("authorization") || tokenExists != true) {
+                _response.StatusCode = 401;
+                _response.SetContent("Unauthorized");
                 return;
             }
 
-            var fighter = UserDBController.GetByToken(_request.Headers["authorization"]);
+            var user = userDBController.GetByToken(token);
 
-            if (fighter == null) {
+            if (user == null) {
                 _response.StatusCode = 400;
-                _response.SetContent("No user could be found within the specified token");
+                _response.SetContent(Environment.NewLine+ "No user found" + Environment.NewLine);
                 return;
             }
 
-            var updatedPlayer = GameHandler.Instance.ConnectPlayerToBattle(fighter);
-            //todo: update the player returned here, as he will have the log and the new elo -> stroe to db
+            var updatedUser = GameHandler.Instance.ConnectUserToBattle(user);
+            Console.WriteLine(updatedUser.Deck.Count);
+            string gameLog = GameHandler.Instance.GameLog;
+            // update count of games, elo
             
             _response.StatusCode = 200;
-            _response.SetContent("success");
+            _response.SetContent(Environment.NewLine + "Battle is over. Game Log:" + gameLog + Environment.NewLine);
         }
 
         public void SendResponse(Stream stream) {

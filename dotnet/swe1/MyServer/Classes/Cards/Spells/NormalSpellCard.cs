@@ -9,13 +9,13 @@ namespace MyServer.Classes.Battle_Stuff {
             ElementType = ElementTypeNormal;
         }
 
-        public override Card CalculateDamageAgainst(Card defendingCard) {
+        public override Card getLosingCard(Card defendingCard) {
 
             if (defendingCard.GetType() == typeof(KrakenCard)) {
                 return this;
             }
 
-            return base.CalculateDamageAgainst(defendingCard);
+            return base.getLosingCard(defendingCard);
         }
     }
 }

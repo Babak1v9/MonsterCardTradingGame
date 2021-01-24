@@ -53,7 +53,6 @@ namespace MyServer.Classes.RequestHandlers {
                             _response.SetContent("User not found");
                         } else {
                             _responseJson = JsonSerializer.Serialize(user.Deck);
-                            Console.WriteLine("responsejson>: " + _responseJson);
                             _response.StatusCode = 200;
                             _response.SetContent(_responseJson);
                         }

@@ -15,32 +15,31 @@ namespace MyServer.Classes.Battle_Stuff {
         public int CardType { get; set; }
         public int ElementType { get; set; }
 
-        public virtual Card CalculateDamageAgainst(Card defendingCard) {
+        public virtual Card getLosingCard(Card defendingCard) {
 
             if (CardType == TypeMonster && defendingCard.CardType == TypeMonster) {
-                return CalcPlainDamage(defendingCard);
+                return calcWithoutElementDmg(defendingCard);
             }
 
-            return CalcElementDamage(defendingCard);
+            return calcWithElementDmg(defendingCard);
         }
 
-        protected Card CalcPlainDamage(Card defendingCard) {
+        protected Card calcWithoutElementDmg(Card defendingCard) {
 
             return Damage > defendingCard.Damage ? defendingCard : this;
         }
 
-        protected Card CalcElementDamage(Card defendingCard) {
+        protected Card calcWithElementDmg(Card defendingCard) {
 
-            var attackingCardDamage = Damage;
             var defendingCardDamage = defendingCard.Damage;
-            attackingCardDamage = ElementType switch {
+            var attackingCardDamage = ElementType switch {
 
                 ElementTypeNormal => defendingCard.ElementType switch {
 
                     ElementTypeNormal => Damage,
                     ElementTypeFire => Damage / 2,
                     ElementTypeWater => Damage * 2,
-                    _ => attackingCardDamage
+                    _ => Damage 
                 },
 
                 ElementTypeFire => defendingCard.ElementType switch {
@@ -48,7 +47,7 @@ namespace MyServer.Classes.Battle_Stuff {
                     ElementTypeNormal => Damage * 2,
                     ElementTypeFire => Damage,
                     ElementTypeWater => Damage / 2,
-                    _ => attackingCardDamage
+                    _ => Damage
                 },
 
                 ElementTypeWater => defendingCard.ElementType switch {
@@ -56,11 +55,10 @@ namespace MyServer.Classes.Battle_Stuff {
                     ElementTypeNormal => Damage / 2,
                     ElementTypeFire => Damage * 2,
                     ElementTypeWater => Damage,
-                    _ => attackingCardDamage
+                    _ => Damage
                 },
-                _ => attackingCardDamage
-            };
-
+                _ => Damage
+            }; 
             return attackingCardDamage > defendingCardDamage ? defendingCard: this;
         }
 

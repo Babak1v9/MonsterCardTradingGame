@@ -30,32 +30,52 @@ namespace MyServer.Classes.RequestHandlers {
             
             switch (_request.Method) {
                 case "GET":
+
+                    string token = _request.Headers["authorization"];
+
+                    var tokenWithoutBasic = token.Remove(0, 6);
+                    var tokenExists = _userDatabaseController.VerifyUserToken(tokenWithoutBasic);
+                    var user = _userDatabaseController.GetByUserName(_request.Url.Segments[1]);
+
+                    if (!_request.Headers.ContainsKey("authorization") || tokenExists != true) {
+                        _response.StatusCode = 401;
+                        _response.SetContent(Environment.NewLine+"Unauthorized"+ Environment.NewLine);
+                        return;
+                    }
                     if (_request.Url.Segments.Length == 1) {
+
 
                         var users = _userDatabaseController.GetUsers();
 
                         if (users == null) {
                             _response.StatusCode = 404;
-                            _response.SetContent("users not found");
+                            _response.SetContent(Environment.NewLine+"users not found"+ Environment.NewLine);
                         } else {
                             _responseJson = JsonSerializer.Serialize(users);
-                            Console.WriteLine("responsejson>: " + _responseJson);
                             _response.StatusCode = 200;
-                            _response.SetContent(_responseJson);
+                            _response.SetContent(Environment.NewLine + _responseJson+ Environment.NewLine);
                         }
 
                     } else {
 
-                        var user = _request.Url.Parameter.ContainsKey("deck") && _request.Url.Parameter["deck"].Equals("true")
-                            ? _userDatabaseController.GetByUserName(_request.Url.Segments[1], true) : _userDatabaseController.GetByUserName(_request.Url.Segments[1]);
+                        var requestedUser = _userDatabaseController.GetByUserName(_request.Url.Segments[1]);
 
-                        if (user == null) {
+                        if (requestedUser == null) {
                             _response.StatusCode = 404;
-                            _response.SetContent("Request user not found");
-                        } else {
+                            _response.SetContent(Environment.NewLine + "Requested User not found" + Environment.NewLine);
+                            return;
+                        }
+
+                        var tokenRequestedUser = requestedUser.Token;
+
+                        if (tokenRequestedUser == tokenWithoutBasic) {
+
                             _responseJson = JsonSerializer.Serialize(user);
                             _response.StatusCode = 200;
-                            _response.SetContent(_responseJson);
+                            _response.SetContent(Environment.NewLine + _responseJson + Environment.NewLine); 
+                        } else {
+                            _response.StatusCode = 401;
+                            _response.SetContent(Environment.NewLine + "Unauthorized" + Environment.NewLine);
                         }
                     }
                     break;
@@ -65,7 +85,7 @@ namespace MyServer.Classes.RequestHandlers {
                     // check if token is in session handler, doesnt exist yet
                     if (!_request.Headers.ContainsKey("authorization") || _request.Headers["authorization"] != $"Basic {_request.Url.Segments[1]}-mtcgToken") {
                         _response.StatusCode = 401;
-                        _response.SetContent("Unauthorized");
+                        _response.SetContent(Environment.NewLine+"Unauthorized"+ Environment.NewLine);
                         return;
                     }
                     try {
@@ -75,11 +95,11 @@ namespace MyServer.Classes.RequestHandlers {
                         var userUpdatedResponse = _userDatabaseController.GetByToken(_request.Headers["authorization"]); //authorization not working yet?
                         _responseJson = JsonSerializer.Serialize(userUpdatedResponse);
                         _response.StatusCode = 200;
-                        _response.SetContent(_responseJson);
+                        _response.SetContent(Environment.NewLine + _responseJson + Environment.NewLine);
                     }
                     catch (Exception) {
                         _response.StatusCode = 400;
-                        _response.SetContent("Could not update");
+                        _response.SetContent(Environment.NewLine + "Could not update" + Environment.NewLine);
                     }
                     break;
 
@@ -88,20 +108,20 @@ namespace MyServer.Classes.RequestHandlers {
                         var userToCreate = JsonSerializer.Deserialize<User>(_request.ContentString);
                         _userDatabaseController.Insert(userToCreate.Username, userToCreate.Password);
                         _response.StatusCode = 200;
-                        _response.SetContent("User created.");
+                        _response.SetContent(Environment.NewLine + "User created." + Environment.NewLine);
                     }
                     catch (Exception e) {
                         Console.WriteLine("e message: " + e.Message);
                         Console.WriteLine(" e source: " + e.Source);
                         Console.WriteLine("e.stacktrace: " + e.StackTrace);
                         _response.StatusCode = 400;
-                        _response.SetContent("User already exists or password incorrect");
+                        _response.SetContent(Environment.NewLine + "User already exists or password incorrect" + Environment.NewLine);
                     }
                     break;
 
                 default:
                     _response.StatusCode = 400;
-                    _response.SetContent("Invalid HTTP Method");
+                    _response.SetContent(Environment.NewLine + "Invalid HTTP Method" + Environment.NewLine);
                     break;
             }
         }

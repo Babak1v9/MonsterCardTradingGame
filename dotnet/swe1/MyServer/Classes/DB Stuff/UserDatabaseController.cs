@@ -245,5 +245,30 @@ namespace MyServer.Classes {
             command.ExecuteNonQuery();
            
         }
+
+        public List<int> ShowUserStats(string token) {
+
+            using var connection = new NpgsqlConnection(connectionString);
+            using var getElo = new NpgsqlCommand("select elo from \"USER\" where token =:token", connection);
+            connection.Open();
+
+            getElo.Parameters.AddWithValue("token", token);
+            int userElo = (int)getElo.ExecuteScalar();
+
+            using var getGamesPlayed = new NpgsqlCommand("select games_played from \"USER\" where token =:token", connection);
+            getGamesPlayed.Parameters.AddWithValue("token", token);
+            int userGamesPlayed = (int)getGamesPlayed.ExecuteScalar();
+
+            using var getWins = new NpgsqlCommand("select wins from \"USER\" where token =:token", connection);
+            getWins.Parameters.AddWithValue("token", token);
+            int userWins = (int)getWins.ExecuteScalar();
+
+            List<int> userStats = new List<int>();
+            userStats.Add(userElo);
+            userStats.Add(userGamesPlayed);
+            userStats.Add(userWins);
+
+            return userStats;
+        }
     }
 }

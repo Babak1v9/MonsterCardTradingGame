@@ -1,5 +1,6 @@
 ﻿using MyServer.Classes.Battle_Stuff;
 using MyServer.Classes.Cards.Monster;
+using Newtonsoft.Json;
 using Npgsql;
 using System;
 using System.Collections.Generic;
@@ -98,7 +99,6 @@ namespace MyServer.Classes.DB_Stuff {
 
 
             string packageStr = package.ToString();
-            Console.WriteLine(package);
 
             using var connection = new NpgsqlConnection(ConnectionString);
             using var command = new NpgsqlCommand("insert into \"CARDS\" (id, name, damage, card_type, element_type, pack_id) values (:id, :name, :damage, :card_type, :element_type, :pack_id) RETURNING card_id", connection);
@@ -132,33 +132,21 @@ namespace MyServer.Classes.DB_Stuff {
                     var cardId = command2.ExecuteScalar();
                     string tmp = cardId.ToString();
                     Cards.Add(tmp);
-
                 }
-
-                var firstCard = Cards.ElementAt(0);
-                var secondCard = Cards.ElementAt(1);
-                var thirdCard = Cards.ElementAt(2);
-                var fourthCard = Cards.ElementAt(3);
-                var fifthCard = Cards.ElementAt(4);
 
                 for (int i = 0; i < 5; i++) {
 
-                    string cardId = "";
-
+                    string cardId ="";
                     switch (i) {
-                        case 0: cardId = firstCard; break;
-                        case 1: cardId = secondCard; break;
-                        case 2: cardId = thirdCard; break;
-                        case 3: cardId = fourthCard; break;
-                        case 4: cardId = fifthCard; break;
+                        case 0: cardId = Cards.ElementAt(0); break;
+                        case 1: cardId = Cards.ElementAt(1); break;
+                        case 2: cardId = Cards.ElementAt(2); break;
+                        case 3: cardId = Cards.ElementAt(3); break;
+                        case 4: cardId = Cards.ElementAt(4); break;
                         default: Console.WriteLine("Invalid CardId"); break;
-
                     };
 
                     using var command3 = new NpgsqlCommand("insert into \"STACK\" (user_id, card_id) values ('" + userId + "', '" + cardId + "')", connection);
-
-                    command.Parameters.AddWithValue("user_id", userId);
-                    command.Parameters.AddWithValue("card_id", cardId);
                     command3.ExecuteNonQuery();
                 }
 
@@ -168,6 +156,89 @@ namespace MyServer.Classes.DB_Stuff {
 
             } else {
                 return false;
+            }
+
+        }
+
+        public List<Card> GetDeck(String userId) {
+            Console.WriteLine("in getdck");
+            var fetchedCards = new List<Card>();
+            using var connection = new NpgsqlConnection(ConnectionString);
+            connection.Open();
+
+            using var command = new NpgsqlCommand("select * from \"DECKS\" join \"CARDS\" using (id) where user_id::text = :userId ", connection);
+
+            command.Parameters.AddWithValue("userId", userId);
+            var reader = command.ExecuteReader();
+
+            while (reader.Read()) {
+
+                var cardClassToUse = reader["name"].ToString() ?? string.Empty;
+                var elementTypeToUse = int.Parse(reader["element_type"].ToString() ?? string.Empty);
+
+                if (!cardClassToUse.Contains("Spell") && elementTypeToUse == 0) {
+                    cardClassToUse = cardClassToUse.Insert(0, "Regular");
+                }
+
+
+                cardClassToUse = elementTypeToUse switch {
+
+                    Card.ElementTypeFire => cardClassToUse.Remove(0, 4),
+                    Card.ElementTypeNormal => cardClassToUse.Remove(0, 7),
+                    Card.ElementTypeWater => cardClassToUse.Remove(0, 5),
+                    _ => cardClassToUse
+                };
+
+                var currentCard = SwitchCardClassFromName(cardClassToUse, elementTypeToUse);
+
+
+                currentCard.Name = reader["name"].ToString() ?? string.Empty;
+                currentCard.CardType = int.Parse(reader["card_type"].ToString() ?? string.Empty);
+                currentCard.ElementType = int.Parse(reader["element_type"].ToString() ?? string.Empty);
+                currentCard.Damage = float.Parse(reader["damage"].ToString() ?? string.Empty);
+
+                fetchedCards.Add(currentCard);
+            }
+            Console.WriteLine("fetched CaRDS in function");
+            Console.WriteLine(fetchedCards);
+            Console.WriteLine(fetchedCards[0]);
+            return fetchedCards;
+        }
+
+        public bool checkUserDeck(string userId) {
+
+            using var connection = new NpgsqlConnection(ConnectionString);
+            connection.Open();
+            using var checkUserDeck = new NpgsqlCommand("select exists(select * from \"DECKS\" where user_id='" + userId + "')", connection);
+
+            var userHasDeck = (bool)checkUserDeck.ExecuteScalar();
+
+            if (userHasDeck == true) {
+                return true;
+            } else {
+                return false;
+            }
+        }
+        public void CardsToDeck(string[] cards, string userId) {
+
+            using var connection = new NpgsqlConnection(ConnectionString);
+            string deckId = Guid.NewGuid().ToString();
+            connection.Open();
+
+            for (int i = 0; i < 4; i++) {
+
+                string cardId = "";
+
+                switch (i) {
+                case 0: cardId = cards[0]; break;
+                case 1: cardId = cards[1]; break;
+                case 2: cardId = cards[2]; break;
+                case 3: cardId = cards[3]; break;
+                default: Console.WriteLine("Invalid CardId"); break;
+                };
+
+                using var command = new NpgsqlCommand("insert into \"DECKS\" (deck_id, user_id, id) values ('" + deckId + "','" + userId + "', '" + cardId + "')", connection);
+                command.ExecuteNonQuery();
             }
 
         }
