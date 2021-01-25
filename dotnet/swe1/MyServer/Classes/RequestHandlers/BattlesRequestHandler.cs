@@ -21,32 +21,50 @@ namespace MyServer.Classes.RequestHandlers {
         }
 
         public void ExecuteTask() {
-            string token = _request.Headers["authorization"];
 
-            var tokenWithoutBasic = token.Remove(0, 6);
-            var tokenExists = userDBController.VerifyUserToken(tokenWithoutBasic);
+            switch (_request.Method) {
+                case "POST":
+                    try {
+                        string token = _request.Headers["authorization"];
 
-            if (!_request.Headers.ContainsKey("authorization") || tokenExists != true) {
-                _response.StatusCode = 401;
-                _response.SetContent("Unauthorized");
-                return;
+                        var tokenWithoutBasic = token.Remove(0, 6);
+                        var tokenExists = userDBController.VerifyUserToken(tokenWithoutBasic);
+
+                        if (!_request.Headers.ContainsKey("authorization") || tokenExists != true) {
+                            _response.StatusCode = 401;
+                            _response.SetContent(Environment.NewLine+"Unauthorized."+ Environment.NewLine);
+                            return;
+                        }
+
+                        var user = userDBController.GetByToken(token);
+
+                        if (user == null) {
+                            _response.StatusCode = 400;
+                            _response.SetContent(Environment.NewLine + "User not found." + Environment.NewLine);
+                            return;
+                        }
+
+                        GameHandler.Instance.ConnectUserToBattle(user);
+                        string gameLog = GameHandler.Instance.GameLog;
+
+
+                        _response.StatusCode = 200;
+                        _response.SetContent(Environment.NewLine + "Battle is over."+ Environment.NewLine+"--- BEGIN OF GAME LOG ---"+ Environment.NewLine + gameLog + Environment.NewLine +"--- END OF GAME LOG ---" + Environment.NewLine);
+                    } catch (Exception e) {
+
+                        Console.WriteLine("e message: " + e.Message);
+                        Console.WriteLine(" e source: " + e.Source);
+                        Console.WriteLine("e.stacktrace: " + e.StackTrace);
+                        _response.StatusCode = 400;
+                        _response.SetContent(Environment.NewLine+"Invalid Request"+ Environment.NewLine);
+                    }
+                    break;
+
+                default:
+                    _response.invalidURL();
+                    break;
             }
 
-            var user = userDBController.GetByToken(token);
-
-            if (user == null) {
-                _response.StatusCode = 400;
-                _response.SetContent(Environment.NewLine+ "No user found" + Environment.NewLine);
-                return;
-            }
-
-            var updatedUser = GameHandler.Instance.ConnectUserToBattle(user);
-            Console.WriteLine(updatedUser.Deck.Count);
-            string gameLog = GameHandler.Instance.GameLog;
-            // update count of games, elo
-            
-            _response.StatusCode = 200;
-            _response.SetContent(Environment.NewLine + "Battle is over. Game Log:" + gameLog + Environment.NewLine);
         }
 
         public void SendResponse(Stream stream) {

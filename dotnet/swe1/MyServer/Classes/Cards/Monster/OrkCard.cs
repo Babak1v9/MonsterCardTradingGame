@@ -7,5 +7,14 @@ namespace MyServer.Classes.Cards.Monster {
 
             CardType = TypeMonster;
         }
+
+        public override Card getLosingCard(Card defendingCard) {
+
+            if (defendingCard.GetType() == typeof(WizardCard)) {
+
+                return this;
+            }
+            return base.getLosingCard(defendingCard);
+        }
     }
 }

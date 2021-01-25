@@ -54,7 +54,7 @@ namespace MyServer.Classes.RequestHandlers {
                     break;
 
                 default:
-                    Console.WriteLine("Invalid Http Method");
+                    _response.invalidURL();
                     break;
             }
         }

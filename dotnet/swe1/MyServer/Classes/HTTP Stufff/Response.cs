@@ -79,6 +79,11 @@ namespace _Server.Classes {
             }
         }
 
+        public void invalidURL() {
+            StatusCode = 404;
+            SetContent(Environment.NewLine + "404. That's an error. The requested URL was not found on this server." + Environment.NewLine);
+        }
+
         public void SetContent(string content) {
             _content = content;
             _headers["Content-Length"] = $"{_content.Length}";

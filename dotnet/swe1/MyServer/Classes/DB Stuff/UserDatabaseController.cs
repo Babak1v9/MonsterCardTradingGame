@@ -10,7 +10,6 @@ using System.Linq;
 namespace MyServer.Classes {
     class UserDatabaseController {
 
-        private DeckDataBaseController _deckDatabaseController = new DeckDataBaseController();
         private const string connectionString = "Server=127.0.0.1;Port=5432;Database=SWE;User ID=postgres;Password=swe;";
         private const string pepper = "NotHackable69420";
 
@@ -42,37 +41,6 @@ namespace MyServer.Classes {
             return fetchedUser;
         }
 
-        public User GetUserCards(string userId) {
-
-            var user = new User();
-
-            using var connection = new NpgsqlConnection(connectionString);
-            connection.Open();
-
-            using var command = new NpgsqlCommand("select user_id, username, name, token, bio, image, coins, games_played from \"USER\"", connection);
-            using var reader = command.ExecuteReader();
-            while (reader.Read()) {
-
-                var currentUser = new User {
-                    Id = reader["user_id"].ToString(),
-                    Username = reader["username"].ToString(),
-                    Name = reader["name"].ToString(),
-                    Token = reader["token"].ToString(),
-                    Bio = reader["bio"].ToString(),
-                    Image = reader["image"].ToString(),
-                    Coins = int.Parse(reader["coins"].ToString() ?? string.Empty),
-                    GamesPlayed = int.Parse(reader["games_played"].ToString() ?? string.Empty)
-                };
-
-
-                currentUser.Deck = _deckDatabaseController.ShowAllCards(reader["user_id"].ToString());
-                user = currentUser;
-            }
-
-            return user;
-
-        }
-
         private string GenerateSalt() {
             byte[] salt;
             new RNGCryptoServiceProvider().GetBytes(salt = new byte[16]);
@@ -100,7 +68,7 @@ namespace MyServer.Classes {
             return hashedPassword;
         }
 
-        public User GetByToken(string Token, bool deckFlag = false) { 
+        public User GetByToken(string Token) { 
 
             var fetchedUser = new User();
             var tokenWithoutBasic = Token.Remove(0, 6);
@@ -108,7 +76,7 @@ namespace MyServer.Classes {
             using var connection = new NpgsqlConnection(connectionString);
             connection.Open();
 
-            using var command = new NpgsqlCommand("select user_id, username, name, token, bio, image, coins, games_played from \"USER\" where token=:userToken", connection);
+            using var command = new NpgsqlCommand("select user_id, username, name, token, bio, image, coins, games_played, elo, wins from \"USER\" where token=:userToken", connection);
 
             //adds the token as parameter, removing the basic poart form the strong
             command.Parameters.AddWithValue("userToken", tokenWithoutBasic);
@@ -129,13 +97,8 @@ namespace MyServer.Classes {
             fetchedUser.Coins = int.Parse(reader["coins"].ToString() ?? string.Empty);
             fetchedUser.GamesPlayed = int.Parse(reader["games_played"].ToString() ?? string.Empty);
 
-            if (deckFlag) {
-                fetchedUser.Deck = _deckDatabaseController.ShowAllCards(fetchedUser.Id);
-            }
-
             return fetchedUser;
         }
-
 
         public User GetByUserName(string userName, bool deckFlag = false) {
 
@@ -165,10 +128,6 @@ namespace MyServer.Classes {
             returnedUser.Coins = int.Parse(reader["coins"].ToString() ?? string.Empty);
             returnedUser.GamesPlayed = int.Parse(reader["games_played"].ToString() ?? string.Empty);
 
-            if (deckFlag) {
-                returnedUser.Deck = _deckDatabaseController.ShowAllCards(returnedUser.Id);
-            }
-
             return returnedUser;
         }
 
@@ -196,7 +155,7 @@ namespace MyServer.Classes {
             command.ExecuteNonQuery();
         }
 
-        public void Update(User user, string userToUpdateName) {
+        public void Update(User user, string newUsername) {
 
             using var connection = new NpgsqlConnection(connectionString);
             using var command = new NpgsqlCommand("update \"USER\" set name = :name, bio = :bio, image = :image where username=:userName", connection);
@@ -205,7 +164,7 @@ namespace MyServer.Classes {
             command.Parameters.AddWithValue("name", user.Name);
             command.Parameters.AddWithValue("bio", user.Bio);
             command.Parameters.AddWithValue("image", user.Image);
-            command.Parameters.AddWithValue("userName", userToUpdateName);
+            command.Parameters.AddWithValue("userName", newUsername);
 
             command.ExecuteNonQuery();
         }
@@ -269,6 +228,24 @@ namespace MyServer.Classes {
             userStats.Add(userWins);
 
             return userStats;
+        }
+
+        public void UpdateStats (User user, bool winOrLose) {
+            using var connection = new NpgsqlConnection(connectionString);
+            using var addGamePlayed = new NpgsqlCommand("update \"USER\" set games_played = games_played +1 where username =:username", connection);
+            connection.Open();
+            addGamePlayed.Parameters.AddWithValue("username", user.Username);
+            addGamePlayed.ExecuteNonQuery();
+
+            if (winOrLose) {
+                using var changeElo = new NpgsqlCommand("update \"USER\" set elo = elo +3, wins = wins +1 where username =:username", connection);
+                changeElo.Parameters.AddWithValue("username", user.Username);
+                changeElo.ExecuteNonQuery();
+            } else {
+                using var changeElo = new NpgsqlCommand("update \"USER\" set elo = elo -5 where username =:username", connection);
+                changeElo.Parameters.AddWithValue("username", user.Username);
+                changeElo.ExecuteNonQuery();
+            }
         }
     }
 }

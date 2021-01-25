@@ -17,7 +17,6 @@ namespace MyServer.Classes {
         private AutoResetEvent battleCanStart = new AutoResetEvent(false);
 
         static GameHandler() {
-            Console.WriteLine("in GameHandler");
             var battle = new Thread(() => Instance.Battle());
             battle.Start();
         }
@@ -28,7 +27,6 @@ namespace MyServer.Classes {
         //todo: <returns> input player, including updated log </return>
 
         public User ConnectUserToBattle(User user) {
-            Console.WriteLine("in connectUserToBattle");
             usersWaitingForBattle.Add(user);
 
             while(!usersWhoFinishedBattle.Contains(user)) {
@@ -41,7 +39,6 @@ namespace MyServer.Classes {
         }
 
         private void Battle() {
-            Console.WriteLine("in Battle");
             var user1 = usersWaitingForBattle.Take();
             var user2 = usersWaitingForBattle.Take();
             var battle = new Battle(user1, user2);

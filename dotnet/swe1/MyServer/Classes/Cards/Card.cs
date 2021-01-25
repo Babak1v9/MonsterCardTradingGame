@@ -1,5 +1,7 @@
 ﻿
 
+using System;
+
 namespace MyServer.Classes.Battle_Stuff {
     class Card {
 
@@ -25,6 +27,10 @@ namespace MyServer.Classes.Battle_Stuff {
         }
 
         protected Card calcWithoutElementDmg(Card defendingCard) {
+
+            /*if (Damage == defendingCard.Damage) {
+                return null;
+            } */
 
             return Damage > defendingCard.Damage ? defendingCard : this;
         }
@@ -58,7 +64,12 @@ namespace MyServer.Classes.Battle_Stuff {
                     _ => Damage
                 },
                 _ => Damage
-            }; 
+            };
+
+            /*if (attackingCardDamage == defendingCardDamage) {
+                return null;
+            }*/
+
             return attackingCardDamage > defendingCardDamage ? defendingCard: this;
         }
 

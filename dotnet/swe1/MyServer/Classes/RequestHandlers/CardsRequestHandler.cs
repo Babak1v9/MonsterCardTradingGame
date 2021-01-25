@@ -8,7 +8,6 @@ using MyServer.Classes.DB_Stuff;
 namespace MyServer.Classes.RequestHandlers {
     class CardsRequestHandler : IMyRequestHandler {
 
-
         private Request _request;
         private Response _response;
         private string _responseJson;
@@ -68,8 +67,7 @@ namespace MyServer.Classes.RequestHandlers {
                     break;
 
                 default:
-                    _response.StatusCode = 400;
-                    _response.SetContent("Invalid HTTP Method");
+                    _response.invalidURL();
                     break;
             }
         }

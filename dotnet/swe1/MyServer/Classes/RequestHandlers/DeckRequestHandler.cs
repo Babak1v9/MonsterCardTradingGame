@@ -120,8 +120,7 @@ namespace MyServer.Classes.RequestHandlers {
                     break;
 
                 default:
-                    _response.StatusCode = 400;
-                    _response.SetContent("Invalid HTTP Method.");
+                    _response.invalidURL();
                     break;
             }
         }

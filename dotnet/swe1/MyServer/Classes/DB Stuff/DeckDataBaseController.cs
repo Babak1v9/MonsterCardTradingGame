@@ -159,10 +159,9 @@ namespace MyServer.Classes.DB_Stuff {
             }
 
         }
-
         public List<Card> GetDeck(String userId) {
-            Console.WriteLine("in getdck");
-            var fetchedCards = new List<Card>();
+
+            var userDeck = new List<Card>();
             using var connection = new NpgsqlConnection(ConnectionString);
             connection.Open();
 
@@ -197,14 +196,10 @@ namespace MyServer.Classes.DB_Stuff {
                 currentCard.ElementType = int.Parse(reader["element_type"].ToString() ?? string.Empty);
                 currentCard.Damage = float.Parse(reader["damage"].ToString() ?? string.Empty);
 
-                fetchedCards.Add(currentCard);
+                userDeck.Add(currentCard);
             }
-            Console.WriteLine("fetched CaRDS in function");
-            Console.WriteLine(fetchedCards);
-            Console.WriteLine(fetchedCards[0]);
-            return fetchedCards;
+            return userDeck;
         }
-
         public bool checkUserDeck(string userId) {
 
             using var connection = new NpgsqlConnection(ConnectionString);
@@ -241,6 +236,76 @@ namespace MyServer.Classes.DB_Stuff {
                 command.ExecuteNonQuery();
             }
 
+        }
+        public (List<Card>, List<String>) GetTradingDeals() {
+
+            var tradingCards = new List<Card>();
+            var tradingCardsInfo = new List<String>();
+            using var connection = new NpgsqlConnection(ConnectionString);
+            connection.Open();
+
+            using var command = new NpgsqlCommand("select * from \"STORE\" join \"CARDS\" using (id)", connection);
+            var reader = command.ExecuteReader();
+
+            while (reader.Read()) {
+
+                var cardClassToUse = reader["name"].ToString() ?? string.Empty;
+                var elementTypeToUse = int.Parse(reader["element_type"].ToString() ?? string.Empty);
+
+                if (!cardClassToUse.Contains("Spell") && elementTypeToUse == 0) {
+                    cardClassToUse = cardClassToUse.Insert(0, "Regular");
+                }
+
+
+                cardClassToUse = elementTypeToUse switch {
+
+                    Card.ElementTypeFire => cardClassToUse.Remove(0, 4),
+                    Card.ElementTypeNormal => cardClassToUse.Remove(0, 7),
+                    Card.ElementTypeWater => cardClassToUse.Remove(0, 5),
+                    _ => cardClassToUse
+                };
+
+                var tradingCard = SwitchCardClassFromName(cardClassToUse, elementTypeToUse);
+
+                tradingCard.Name = reader["name"].ToString() ?? string.Empty;
+                tradingCard.CardType = int.Parse(reader["card_type"].ToString() ?? string.Empty);
+                tradingCard.ElementType = int.Parse(reader["element_type"].ToString() ?? string.Empty);
+                tradingCard.Damage = float.Parse(reader["damage"].ToString() ?? string.Empty);
+                tradingCards.Add(tradingCard);
+
+                tradingCardsInfo.Add(reader["trading_id"].ToString() ?? string.Empty);
+                tradingCardsInfo.Add(reader["user_id"].ToString() ?? string.Empty);
+                tradingCardsInfo.Add(reader["type_requirement"].ToString() ?? string.Empty);
+                tradingCardsInfo.Add(reader["element_requirement"].ToString() ?? string.Empty);
+                tradingCardsInfo.Add(reader["damage_requirement"].ToString() ?? string.Empty);    
+            }
+            return (tradingCards, tradingCardsInfo);
+        }
+
+        public void CreateTradingDeal(string tradingId, string userId, string cardId, string typeRequirement, string secondRequirement) {
+
+            using var connection = new NpgsqlConnection(ConnectionString);
+            connection.Open();
+
+            using var command = new NpgsqlCommand("insert into \"STORE\" (trading_id, user_id, id, type_requirement, damage_requirement) values (:trading_id, :user_id, :id, :type_requirement, :second_requirement)", connection);
+           
+            command.Parameters.AddWithValue("trading_id", tradingId);
+            command.Parameters.AddWithValue("user_id", Guid.Parse(userId));
+            command.Parameters.AddWithValue("id", cardId);
+            command.Parameters.AddWithValue("type_requirement", typeRequirement);
+            command.Parameters.AddWithValue("second_requirement", Int32.Parse(secondRequirement));
+
+            command.ExecuteNonQuery();
+       
+        }
+
+        public void DeleteTradingDeal(string tradingId) {
+
+            using var connection = new NpgsqlConnection(ConnectionString);
+            connection.Open();
+
+            using var command = new NpgsqlCommand("delete from \"STORE\" where trading_id = '"+tradingId+"'", connection);
+            command.ExecuteNonQuery();
         }
 
     }

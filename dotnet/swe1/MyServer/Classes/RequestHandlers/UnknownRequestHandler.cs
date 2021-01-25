@@ -8,7 +8,6 @@ namespace MyServer.Classes.RequestHandlers {
 
         private Request _request;
         private Response _response;
-        private UserDatabaseController _userDatabaseController = new UserDatabaseController();
 
         public UnknownRequestHandler(Request request) {
             _request = request;
@@ -23,8 +22,7 @@ namespace MyServer.Classes.RequestHandlers {
         }
 
         public void ExecuteTask() {
-            _response.StatusCode = 404;
-            _response.SetContent("Invalid Request.");
+            _response.invalidURL();
         }
 
         public void SendResponse(Stream stream) {

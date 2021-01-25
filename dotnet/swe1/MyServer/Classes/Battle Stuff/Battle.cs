@@ -10,6 +10,7 @@ namespace MyServer.Classes.Battle_Stuff {
         private User user2;
         private Random random = new Random();
         private DeckDataBaseController deckDBController = new DeckDataBaseController();
+        private UserDatabaseController userDBController = new UserDatabaseController();
         public string Gamelog;
 
         public Battle(User _user1, User _user2) {
@@ -20,53 +21,63 @@ namespace MyServer.Classes.Battle_Stuff {
         }
 
         public string StartBattle() {
-            Console.WriteLine("in StartBattle");
-            int counter = 0;
+            User winnerOfBattle = new User();
+            int counter = 1;
             user1.Deck = deckDBController.GetDeck(user1.Id);
             user2.Deck = deckDBController.GetDeck(user2.Id);
-            Console.WriteLine(counter);
-            while (counter < 100) {
+            
+
+            while (counter < 101) {
                 if (user1.Deck.Count == 0) {
-                    Console.WriteLine("User"+ user2.Username + " won.");
+                    winnerOfBattle = user2;
                     break;
                 }
 
                 if (user2.Deck.Count == 0) {
-                    Console.WriteLine("User" + user1.Username + " won.");
+                    winnerOfBattle = user1;
                     break;
                 }
 
-                var user1Card = SelectRandomCard(user1.Deck);
-                var user2Card = SelectRandomCard(user2.Deck);
-                Console.WriteLine("user1Card");
-                Console.WriteLine(user1Card);
-                Console.WriteLine("user2Card");
-                Console.WriteLine(user2Card);
+                var user1Card = user1.Deck[random.Next(0, user1.Deck.Count)];
+                var user2Card = user2.Deck[random.Next(0, user2.Deck.Count)];
 
-                var winner = WinnerOfRound(user1Card, user2Card);
-                Console.WriteLine("winner");
-                Console.WriteLine(winner.Username);
+                var winnerofRound = WinnerOfRound(user1Card, user2Card);
 
-                if (winner == user1) {
-                    Gamelog += Environment.NewLine + user1.Username+" won Round number" + counter + ". Card played: " + user1Card.Name + ". Deck Count: " + user1.Deck.Count + Environment.NewLine;
+                if (winnerofRound == null) {
+                    Gamelog += Environment.NewLine + "Round number " + counter + " was a Tie. User 1 Card: " + user1Card.Name + " vs. User 2 Card: " + user2Card.Name + Environment.NewLine;
+                }
 
-                } else if (winner == user2) {
-                    Gamelog += Environment.NewLine + user2.Username + " won Round number" + counter + ". Card played: " + user2Card.Name + ". Deck Count: "+ user2.Deck.Count + Environment.NewLine;
+                if (winnerofRound == user1) {
+                    Gamelog += Environment.NewLine + "User " + user1.Username+ " won Round number " + counter + ". Card played: " + user1Card.Name + " vs. " + user2Card.Name + ". New Deck Count: " + user1.Deck.Count + Environment.NewLine;
+
+                } else if (winnerofRound == user2) {
+                    Gamelog += Environment.NewLine + "User " + user2.Username + " won Round number " + counter + ". Card played: " + user2Card.Name + " vs. " + user1Card.Name + ". Deck Count: " + user2.Deck.Count + Environment.NewLine;
                     }
                 counter++;
                 
             }
 
-            Gamelog += user1.Deck.Count > user2.Deck.Count ? user1.Username : user2.Username;
-            Gamelog += " won the battle!\n";
+            if (winnerOfBattle == user1) {
+                userDBController.UpdateStats(user1, true);
+                userDBController.UpdateStats(user2, false);
+            } else {
+                userDBController.UpdateStats(user1, false);
+                userDBController.UpdateStats(user2, true);
+            }
+
+            Gamelog += winnerOfBattle.Username + " won the battle!\n";
             return Gamelog;
         }
 
         private User WinnerOfRound(Card user1Card, Card user2Card) {
-            Console.WriteLine("in WinnerOfRound");
+
             User winner = new User();
 
             var losingCard = user1Card.getLosingCard(user2Card);
+
+            if (losingCard == null) {
+                return null;
+            }
 
             if (losingCard == user2Card) {
 
@@ -85,12 +96,6 @@ namespace MyServer.Classes.Battle_Stuff {
             user2 = changeOrder;
 
             return winner;
-        }
-
-        private Card SelectRandomCard(List<Card> userDeck) {
-            Console.WriteLine("in SelectRandomCard");
-
-            return userDeck[random.Next(0, userDeck.Count)];
         }
 
         private (User, User) SelectStartingUser(User user1, User user2) {

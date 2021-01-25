@@ -41,10 +41,6 @@ namespace MyServer.Classes.RequestHandlers {
                     Users = _userDatabaseController.GetUsers();
 
 
-                    /*for (int i = 0; i == Users.Count; i++) {
-                        userStats = _userDatabaseController.ShowUserStats(Users[i].Token);
-                    }*/
-
                     foreach (User user in Users) {
                         if (user.Username != "admin") {
                             userStats = _userDatabaseController.ShowUserStats(user.Token);
@@ -56,8 +52,7 @@ namespace MyServer.Classes.RequestHandlers {
                     break;
 
                 default:
-                    _response.StatusCode = 400;
-                    _response.SetContent(Environment.NewLine + "Invalid HTTP Method" + Environment.NewLine);
+                    _response.invalidURL();
                     break;
             }
         }

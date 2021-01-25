@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace MyServer.Classes.Data {
      class User {
 
-        private List<Card> _deck = new List<Card>(5);
+        private List<Card> _deck = new List<Card>(4);
 
         public string Id { get; set; }
 
@@ -20,7 +20,9 @@ namespace MyServer.Classes.Data {
         public string BattleLog { get; set; }
         public int GamesPlayed { get; set; } = 0;
 
-        private List<Card> Stack { get; set; }
+        public int Elo { get; set; }
+
+        public int Wins { get; set; }
 
         public List<Card> Deck {
             get => _deck;
