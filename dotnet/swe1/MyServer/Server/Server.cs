@@ -4,29 +4,25 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
-using _Server.Classes;
-using _Server.Interfaces;
-using MyServer.Classes.RequestHandlers;
+using MTCGserver.Classes;
+using MTCGserver.Classes.RequestHandlers;
+using MTCGserver.Interfaces;
 
-namespace _MyServer.Util {
+namespace MTCGserver {
 
     public class Server {
-
         public static void Listen() {
 
-            TcpListener listener = new TcpListener(IPAddress.Any, 4040);
+            TcpListener listener = new TcpListener(IPAddress.Any, 10001);
             listener.Start();
 
             //endless loop
             while (true) {
-                Console.WriteLine("Server listening on: " + listener.LocalEndpoint);
-                Console.WriteLine("Waiting for connection...");
-                Console.WriteLine(Environment.NewLine);
-
-                
+                Console.WriteLine("Server listening on: " + listener.LocalEndpoint + Environment.NewLine);
+                Console.WriteLine("Waiting for connection..." + Environment.NewLine);
+  
                 Socket client = listener.AcceptSocket();
-                Console.WriteLine("New Connection incoming...");
-                Console.WriteLine(Environment.NewLine);
+                Console.WriteLine("New Connection incoming..." + Environment.NewLine);
                 var connection = new Thread(() => HandleRequest(client));
                 connection.Start();
             }
@@ -34,8 +30,7 @@ namespace _MyServer.Util {
 
         private static void HandleRequest(Socket clientSocket) {
 
-            Console.WriteLine("Connection accepted");
-            Console.WriteLine(Environment.NewLine);
+            Console.WriteLine("Connection accepted" + Environment.NewLine);
 
             using var stream = new NetworkStream(clientSocket);
             using var memoryStream = new MemoryStream();
@@ -57,18 +52,18 @@ namespace _MyServer.Util {
             
             var firstSegment = request.Url.Segments[0];
 
-            IMyRequestHandler requestHandler = firstSegment switch {
-                "users" => new UserRequestHandler(request),
-                "packages" => new PackagesRequestHandler(request),
-                "cards" => new CardsRequestHandler(request),
-                "deck" => new DeckRequestHandler(request),
-                "score" => new ScoreRequestHandler(request),
-                "sessions" => new SessionRequestHandler(request),
-                "stats" => new StatsRequestHandler(request),
-                "tradings" => new TradingRequestHandler(request),
-                "transactions" => new TransactionsRequestHandler(request),
-                "battles" => new BattlesRequestHandler(request),
-                _ => new UnknownRequestHandler(request)
+            IMyRequests requestHandler = firstSegment switch {
+                "users" => new UserRequests(request),
+                "packages" => new PackageRequests(request),
+                "cards" => new CardsRequests(request),
+                "deck" => new DeckRequests(request),
+                "score" => new ScoreRequests(request),
+                "sessions" => new SessionRequests(request),
+                "stats" => new StatsRequests(request),
+                "tradings" => new TradingRequests(request),
+                "transactions" => new TransactionsRequests(request),
+                "battles" => new BattleRequests(request),
+                _ => new UnknownRequests(request)
 
             };
 

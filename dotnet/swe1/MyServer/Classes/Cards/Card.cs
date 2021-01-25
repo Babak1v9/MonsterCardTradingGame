@@ -1,8 +1,4 @@
-﻿
-
-using System;
-
-namespace MyServer.Classes.Battle_Stuff {
+﻿namespace MTCGserver.Classes.Battle_Logic {
     class Card {
 
         public const int ElementTypeNormal = 0;

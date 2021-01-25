@@ -1,6 +1,6 @@
-﻿using MyServer.Classes.Cards.Monster;
+﻿using MTCGserver.Classes.Battle_Logic;
 
-namespace MyServer.Classes.Battle_Stuff {
+namespace MTCGserver.Classes.Cards.Monster {
     class WaterSpellCard : Card{
 
         public WaterSpellCard() {

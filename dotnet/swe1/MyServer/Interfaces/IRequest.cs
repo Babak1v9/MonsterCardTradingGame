@@ -2,7 +2,7 @@
 using System.IO;
 
 
-namespace _Server.Interfaces
+namespace MTCGserver.Interfaces
 {
     public interface IRequest
     {

@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 
 
-namespace _Server.Interfaces
+namespace MTCGserver.Interfaces
 {
     public interface IUrl
     {

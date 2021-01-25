@@ -1,7 +1,7 @@
 ﻿
-using MyServer.Classes.Battle_Stuff;
+using MTCGserver.Classes.Battle_Logic;
 
-namespace MyServer.Classes.Cards.Monster {
+namespace MTCGserver.Classes.Cards.Monster {
     class WizardCard : Card{
 
         public WizardCard() {
