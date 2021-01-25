@@ -25,22 +25,19 @@ namespace MyServer.Classes.RequestHandlers {
             switch (_request.Method) {
                 case "POST":
                     try {
-                        string token = _request.Headers["authorization"];
 
-                        var tokenWithoutBasic = token.Remove(0, 6);
-                        var tokenExists = userDBController.VerifyUserToken(tokenWithoutBasic);
-
-                        if (!_request.Headers.ContainsKey("authorization") || tokenExists != true) {
-                            _response.StatusCode = 401;
-                            _response.SetContent(Environment.NewLine+"Unauthorized."+ Environment.NewLine);
+                        bool Authentication = userDBController.AuthenticateUser(_request.Headers);
+                        if (!Authentication) {
+                            _response.UnauthenticatedUser();
                             return;
                         }
 
+                        string token = _request.Headers["authorization"];
                         var user = userDBController.GetByToken(token);
 
                         if (user == null) {
                             _response.StatusCode = 400;
-                            _response.SetContent(Environment.NewLine + "User not found." + Environment.NewLine);
+                            _response.SetContent("User not found.");
                             return;
                         }
 
@@ -49,7 +46,7 @@ namespace MyServer.Classes.RequestHandlers {
 
 
                         _response.StatusCode = 200;
-                        _response.SetContent(Environment.NewLine + "Battle is over."+ Environment.NewLine+"--- BEGIN OF GAME LOG ---"+ Environment.NewLine + gameLog + Environment.NewLine +"--- END OF GAME LOG ---" + Environment.NewLine);
+                        _response.SetContent("Battle is over."+ Environment.NewLine+"--- BEGIN OF GAME LOG ---"+ Environment.NewLine + gameLog + Environment.NewLine +"--- END OF GAME LOG ---");
                     } catch (Exception e) {
 
                         Console.WriteLine("e message: " + e.Message);
@@ -61,7 +58,7 @@ namespace MyServer.Classes.RequestHandlers {
                     break;
 
                 default:
-                    _response.invalidURL();
+                    _response.InvalidURL();
                     break;
             }
 

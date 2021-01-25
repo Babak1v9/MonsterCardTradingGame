@@ -9,8 +9,8 @@ namespace MyServer.Classes.RequestHandlers {
 
         private Request _request;
         private Response _response;
-        private DeckDataBaseController _deckDatabaseController = new DeckDataBaseController();
-        private UserDatabaseController _userDatabaseController = new UserDatabaseController();
+        private DeckDataBaseController deckDBController = new DeckDataBaseController();
+        private UserDatabaseController userDBController = new UserDatabaseController();
 
         public Request Request => _request;
 
@@ -29,26 +29,25 @@ namespace MyServer.Classes.RequestHandlers {
                 case "POST":
                     try {
 
+                        bool Authentication = userDBController.AuthenticateUser(_request.Headers);
+                        if (!Authentication) {
+                            _response.UnauthenticatedUser();
+                            return;
+                        }
+
                         if (_request.Url.Segments[1] == "packages") {
 
                             string token = _request.Headers["authorization"];
-
                             var tokenWithoutBasic = token.Remove(0, 6);
-                            var tokenExists = _userDatabaseController.VerifyUserToken(tokenWithoutBasic);
 
-                            if (!_request.Headers.ContainsKey("authorization") || tokenExists != true) {
-                                _response.StatusCode = 401;
-                                _response.SetContent("Unauthorized");
-                                return;
-                            }
-                            var user = _userDatabaseController.GetByToken(token);
-                            int userCoins = _userDatabaseController.GetCoins(tokenWithoutBasic);
+                            var user = userDBController.GetByToken(token);
+                            int userCoins = userDBController.GetCoins(tokenWithoutBasic);
 
                             if (userCoins >= 5) {
 
                                 var userId = user.Id;
-                                bool packageAcquired = _deckDatabaseController.acquirePackage(userId);
-                                _userDatabaseController.PackageAcquired(tokenWithoutBasic);
+                                bool packageAcquired = deckDBController.acquirePackage(userId);
+                                userDBController.PackageAcquired(tokenWithoutBasic);
 
                                 if (packageAcquired == false) {
                                     _response.StatusCode = 400;
@@ -65,7 +64,7 @@ namespace MyServer.Classes.RequestHandlers {
                             }
                         } else {
                             _response.StatusCode = 400;
-                            _response.SetContent("Error: Wrong URL");
+                            _response.SetContent("Invalid URL, add /packages after transactions.");
                         }
                     } catch (Exception e) {
                         Console.WriteLine("e message: " + e.Message);
@@ -77,7 +76,7 @@ namespace MyServer.Classes.RequestHandlers {
                     break;
 
                 default:
-                    _response.invalidURL();
+                    _response.InvalidURL();
                     break;
             }
         }

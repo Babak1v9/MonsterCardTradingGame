@@ -41,6 +41,22 @@ namespace MyServer.Classes {
             return fetchedUser;
         }
 
+        public bool AuthenticateUser(IDictionary<string, string> headers) {
+
+            if (headers.ContainsKey("authorization") == false) {
+                return false;
+            }
+
+            string token = headers["authorization"];
+            var tokenWithoutBasic = token.Remove(0, 6);
+            var tokenExists = VerifyUserToken(tokenWithoutBasic);
+
+            if (tokenExists != true) {
+                return false;
+            }
+            return true;
+        }
+
         private string GenerateSalt() {
             byte[] salt;
             new RNGCryptoServiceProvider().GetBytes(salt = new byte[16]);

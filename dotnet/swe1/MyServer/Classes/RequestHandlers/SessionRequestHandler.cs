@@ -10,7 +10,7 @@ namespace MyServer.Classes.RequestHandlers {
 
         private Request _request;
         private Response _response;
-        private UserDatabaseController _userDatabaseController = new UserDatabaseController();
+        private UserDatabaseController userDBController = new UserDatabaseController();
 
         public Request Request => _request;
 
@@ -29,10 +29,11 @@ namespace MyServer.Classes.RequestHandlers {
                 
                 case "POST":
                     try {
-                        var userToBeLoggedIn = JsonSerializer.Deserialize<User>(_request.ContentString);
-                        var returnedUser = _userDatabaseController.GetByUserName(userToBeLoggedIn.Username);
 
-                        var sha256 =_userDatabaseController.CalcSHA256(userToBeLoggedIn.Password, returnedUser.Salt);
+                        var userToBeLoggedIn = JsonSerializer.Deserialize<User>(_request.ContentString);
+                        var returnedUser = userDBController.GetByUserName(userToBeLoggedIn.Username);
+
+                        var sha256 = userDBController.CalcSHA256(userToBeLoggedIn.Password, returnedUser.Salt);
 
                         if (sha256 == returnedUser.Password) {
                             _response.StatusCode = 200;
@@ -54,7 +55,7 @@ namespace MyServer.Classes.RequestHandlers {
                     break;
 
                 default:
-                    _response.invalidURL();
+                    _response.InvalidURL();
                     break;
             }
         }

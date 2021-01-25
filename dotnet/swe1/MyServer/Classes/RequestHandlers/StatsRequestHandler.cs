@@ -9,7 +9,7 @@ namespace MyServer.Classes.RequestHandlers {
 
         private Request _request;
         private Response _response;
-        private UserDatabaseController _userDatabaseController = new UserDatabaseController();
+        private UserDatabaseController userDBController = new UserDatabaseController();
         public Request Request => _request;
         public Response Response {
             get => _response;
@@ -23,24 +23,24 @@ namespace MyServer.Classes.RequestHandlers {
             switch (_request.Method) {
                 case "GET":
 
-                    string token = _request.Headers["authorization"];
-                    var tokenWithoutBasic = token.Remove(0, 6);
-                    var tokenExists = _userDatabaseController.VerifyUserToken(tokenWithoutBasic);
-
-                    if (!_request.Headers.ContainsKey("authorization") || tokenExists != true) {
-                        _response.StatusCode = 401;
-                        _response.SetContent(Environment.NewLine + "Unauthorized" + Environment.NewLine);
+                    bool Authentication = userDBController.AuthenticateUser(_request.Headers);
+                    if (!Authentication) {
+                        _response.UnauthenticatedUser();
                         return;
                     }
+
+                    string token = _request.Headers["authorization"];
+                    var tokenWithoutBasic = token.Remove(0, 6);
+                
                     List<int> userStats = new List<int>();
-                    userStats = _userDatabaseController.ShowUserStats(tokenWithoutBasic);
+                    userStats = userDBController.ShowUserStats(tokenWithoutBasic);
                     _response.StatusCode = 400;
                     _response.SetContent(Environment.NewLine + "Elo: " + userStats[0] + " Games Played: " + userStats[1] + " Wins: " + userStats[2] + Environment.NewLine);
 
                     break;
 
                 default:
-                    _response.invalidURL();
+                    _response.InvalidURL();
                     break;
             }
         }

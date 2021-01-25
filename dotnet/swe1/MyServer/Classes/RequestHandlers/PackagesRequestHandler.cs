@@ -10,7 +10,7 @@ namespace MyServer.Classes.RequestHandlers {
 
         private Request _request;
         private Response _response;
-        private DeckDataBaseController _deckDatabaseController = new DeckDataBaseController();
+        private DeckDataBaseController deckDBController = new DeckDataBaseController();
 
         public Request Request => _request;
 
@@ -29,13 +29,14 @@ namespace MyServer.Classes.RequestHandlers {
                 case "POST":
                     try {
 
+                   
+
                         if (!_request.Headers.ContainsKey("authorization") || _request.Headers["authorization"] != $"Basic admin-mtcgToken") {
-                            _response.StatusCode = 401;
-                            _response.SetContent("Unauthorized");
+                            _response.UnauthenticatedUser();
                             return;
                         }
 
-                        var packageId = _deckDatabaseController.createPackage();
+                        var packageId = deckDBController.createPackage();
 
                         var cardJsons = _request.ContentString.Split("}, {");
                         cardJsons[0] = (cardJsons[0].Replace("[", "") + "}");
@@ -73,7 +74,7 @@ namespace MyServer.Classes.RequestHandlers {
                                 cardType = "0";
                             }
 
-                            _deckDatabaseController.createCard(cardID, cardName, cardDamage, cardType, elementType, packageId);
+                            deckDBController.createCard(cardID, cardName, cardDamage, cardType, elementType, packageId);
                         }
 
                         
@@ -89,7 +90,7 @@ namespace MyServer.Classes.RequestHandlers {
                     break;
 
                 default:
-                    _response.invalidURL();
+                    _response.InvalidURL();
                     break;
             }
         }

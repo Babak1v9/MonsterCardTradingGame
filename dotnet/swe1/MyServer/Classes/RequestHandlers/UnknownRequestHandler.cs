@@ -22,7 +22,7 @@ namespace MyServer.Classes.RequestHandlers {
         }
 
         public void ExecuteTask() {
-            _response.invalidURL();
+            _response.InvalidURL();
         }
 
         public void SendResponse(Stream stream) {

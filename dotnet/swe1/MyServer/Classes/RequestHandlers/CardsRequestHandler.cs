@@ -11,8 +11,8 @@ namespace MyServer.Classes.RequestHandlers {
         private Request _request;
         private Response _response;
         private string _responseJson;
-        private DeckDataBaseController _deckDatabaseController = new DeckDataBaseController();
-        private UserDatabaseController _userDatabaseController = new UserDatabaseController();
+        private DeckDataBaseController deckDBController = new DeckDataBaseController();
+        private UserDatabaseController userDBController = new UserDatabaseController();
 
         public Request Request => _request;
 
@@ -31,21 +31,17 @@ namespace MyServer.Classes.RequestHandlers {
                 case "GET":
                     try {
 
-                        string token = _request.Headers["authorization"];
-
-                        var tokenWithoutBasic = token.Remove(0, 6);
-                        var tokenExists = _userDatabaseController.VerifyUserToken(tokenWithoutBasic);
-
-                        if (!_request.Headers.ContainsKey("authorization") || tokenExists != true) {
-                            _response.StatusCode = 401;
-                            _response.SetContent("Unauthorized");
+                        bool Authentication = userDBController.AuthenticateUser(_request.Headers);
+                        if (!Authentication) {
+                            _response.UnauthenticatedUser();
                             return;
                         }
 
-                        var user = _userDatabaseController.GetByToken(token);
+                        string token = _request.Headers["authorization"];
+                        var user = userDBController.GetByToken(token);
                         var userId = user.Id;
 
-                        user.Deck = _deckDatabaseController.ShowAllCards(userId);
+                        user.Deck = deckDBController.ShowAllCards(userId);
 
                         if (user == null) {
                             _response.StatusCode = 404;
@@ -67,7 +63,7 @@ namespace MyServer.Classes.RequestHandlers {
                     break;
 
                 default:
-                    _response.invalidURL();
+                    _response.InvalidURL();
                     break;
             }
         }

@@ -12,7 +12,7 @@ namespace MyServer.Classes.RequestHandlers {
 
         private string _responseJson;
         private Response _response;
-        private UserDatabaseController _userDatabaseController = new UserDatabaseController();
+        private UserDatabaseController userDBController = new UserDatabaseController();
 
         public UserRequestHandler(Request request) {
             _request = request;
@@ -27,100 +27,99 @@ namespace MyServer.Classes.RequestHandlers {
         }
 
         public void ExecuteTask() {
-            
+
             switch (_request.Method) {
                 case "GET":
+                    try {
 
-                    string token = _request.Headers["authorization"];
-
-                    var tokenWithoutBasic = token.Remove(0, 6);
-                    var tokenExists = _userDatabaseController.VerifyUserToken(tokenWithoutBasic);
-                    var user = _userDatabaseController.GetByUserName(_request.Url.Segments[1]);
-
-                    if (!_request.Headers.ContainsKey("authorization") || tokenExists != true) {
-                        _response.StatusCode = 401;
-                        _response.SetContent(Environment.NewLine+"Unauthorized"+ Environment.NewLine);
-                        return;
-                    }
-                    if (_request.Url.Segments.Length == 1) {
-
-
-                        var users = _userDatabaseController.GetUsers();
-
-                        if (users == null) {
-                            _response.StatusCode = 404;
-                            _response.SetContent(Environment.NewLine+"users not found"+ Environment.NewLine);
-                        } else {
-                            _responseJson = JsonSerializer.Serialize(users);
-                            _response.StatusCode = 200;
-                            _response.SetContent(Environment.NewLine + _responseJson+ Environment.NewLine);
-                        }
-
-                    } else {
-
-                        var requestedUser = _userDatabaseController.GetByUserName(_request.Url.Segments[1]);
-
-                        if (requestedUser == null) {
-                            _response.StatusCode = 404;
-                            _response.SetContent(Environment.NewLine + "Requested User not found" + Environment.NewLine);
+                        bool Authentication = userDBController.AuthenticateUser(_request.Headers);
+                        if (!Authentication) {
+                            _response.UnauthenticatedUser();
                             return;
                         }
 
-                        var tokenRequestedUser = requestedUser.Token;
 
-                        if (tokenRequestedUser == tokenWithoutBasic) {
+                        string token = _request.Headers["authorization"];
+                        var tokenWithoutBasic = token.Remove(0, 6);
+                        var user = userDBController.GetByToken(token);
 
-                            _responseJson = JsonSerializer.Serialize(user);
-                            _response.StatusCode = 200;
-                            _response.SetContent(Environment.NewLine + _responseJson + Environment.NewLine); 
+                        if (_request.Url.Segments.Length == 1) {
+
+                            var users = userDBController.GetUsers();
+                            if (users == null) {
+                                _response.StatusCode = 404;
+                                _response.SetContent("users not found");
+                            } else {
+                                _responseJson = JsonSerializer.Serialize(users);
+                                _response.StatusCode = 200;
+                                _response.SetContent(_responseJson);
+                            }
                         } else {
-                            _response.StatusCode = 401;
-                            _response.SetContent(Environment.NewLine + "Unauthorized" + Environment.NewLine);
+
+                            var requestedUser = userDBController.GetByToken(token);
+                            if (requestedUser == null) {
+                                _response.StatusCode = 404;
+                                _response.SetContent("Requested User not found");
+                                return;
+                            }
+
+                            var tokenRequestedUser = requestedUser.Token;
+                            if (tokenRequestedUser == tokenWithoutBasic) {
+
+                                _responseJson = JsonSerializer.Serialize(user);
+                                _response.StatusCode = 200;
+                                _response.SetContent(_responseJson);
+                            } else {
+                                _response.StatusCode = 401;
+                                _response.SetContent("Unauthorized");
+                            }
                         }
+                    } catch (Exception) {
+                        _response.StatusCode = 400;
+                        _response.SetContent("Could not update");
                     }
                     break;
 
                 case "PUT":
-                    // if needs to be changed
-                    // check if token is in session handler, doesnt exist yet
+                    
                     if (!_request.Headers.ContainsKey("authorization") || _request.Headers["authorization"] != $"Basic {_request.Url.Segments[1]}-mtcgToken") {
                         _response.StatusCode = 401;
-                        _response.SetContent(Environment.NewLine+"Unauthorized"+ Environment.NewLine);
+                        _response.SetContent("Unauthorized");
                         return;
                     }
                     try {
                         var userToUpdate = _request.Url.Segments[1];
                         var userUpdatesToDo = JsonSerializer.Deserialize<User>(_request.ContentString);
-                        _userDatabaseController.Update(userUpdatesToDo, userToUpdate); //checks with props are not null and updates them
-                        var userUpdatedResponse = _userDatabaseController.GetByToken(_request.Headers["authorization"]); //authorization not working yet?
+                        userDBController.Update(userUpdatesToDo, userToUpdate); //checks with props are not null and updates them
+                        var userUpdatedResponse = userDBController.GetByToken(_request.Headers["authorization"]); //authorization not working yet?
                         _responseJson = JsonSerializer.Serialize(userUpdatedResponse);
                         _response.StatusCode = 200;
-                        _response.SetContent(Environment.NewLine + _responseJson + Environment.NewLine);
+                        _response.SetContent(_responseJson);
                     }
                     catch (Exception) {
                         _response.StatusCode = 400;
-                        _response.SetContent(Environment.NewLine + "Could not update" + Environment.NewLine);
+                        _response.SetContent("Could not update");
                     }
                     break;
 
                 case "POST":
                     try {
                         var userToCreate = JsonSerializer.Deserialize<User>(_request.ContentString);
-                        _userDatabaseController.Insert(userToCreate.Username, userToCreate.Password);
+                        userDBController.Insert(userToCreate.Username, userToCreate.Password);
                         _response.StatusCode = 200;
-                        _response.SetContent(Environment.NewLine + "User created." + Environment.NewLine);
+                        _response.SetContent("User created.");
                     }
                     catch (Exception e) {
                         Console.WriteLine("e message: " + e.Message);
                         Console.WriteLine(" e source: " + e.Source);
                         Console.WriteLine("e.stacktrace: " + e.StackTrace);
                         _response.StatusCode = 400;
-                        _response.SetContent(Environment.NewLine + "User already exists or password incorrect" + Environment.NewLine);
+                        _response.SetContent("User already exists or password incorrect");
                     }
                     break;
 
                 default:
-                    _response.invalidURL(); 
+                    _response.InvalidURL(); 
                     break;
             }
         }

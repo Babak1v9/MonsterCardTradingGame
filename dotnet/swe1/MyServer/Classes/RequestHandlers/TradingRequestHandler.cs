@@ -30,22 +30,22 @@ namespace MyServer.Classes.RequestHandlers {
                 case "GET":
                     try {
 
-                        string token = _request.Headers["authorization"];
-                        var tokenWithoutBasic = token.Remove(0, 6);
-                        var tokenExists = userDBController.VerifyUserToken(tokenWithoutBasic);
-
-                        if (!_request.Headers.ContainsKey("authorization") || tokenExists != true) {
-                            _response.StatusCode = 401;
-                            _response.SetContent(Environment.NewLine + "Unauthorized" + Environment.NewLine);
+                        bool Authentication = userDBController.AuthenticateUser(_request.Headers);
+                        if (!Authentication) {
+                            _response.UnauthenticatedUser();
                             return;
                         }
 
+                        string token = _request.Headers["authorization"];
                         string tradingDeals="";
+
                         List<Card> Cards = new List<Card>();
                         List<String> CardsInfo = new List<String>();
-                        (Cards, CardsInfo) = deckDBController.GetTradingDeals();
-                        int counter = 0;
 
+                        var user = userDBController.GetByToken(token);
+                        (Cards, CardsInfo) = deckDBController.GetTradingDeals(user.Id);
+
+                        int counter = 0;
                         if (Cards != null && CardsInfo != null) {
  
                             for(int i = 0; i < Cards.Count; i++) {
@@ -84,85 +84,106 @@ namespace MyServer.Classes.RequestHandlers {
                             }   
                         }
                         _response.StatusCode = 200;
-                        _response.SetContent(Environment.NewLine + "Trading Deals: " + Environment.NewLine + tradingDeals + Environment.NewLine);
+                        _response.SetContent("Trading Deals: " + Environment.NewLine + tradingDeals);
 
                     } catch (Exception e) {
                         Console.WriteLine("e message: " + e.Message);
                         Console.WriteLine(" e source: " + e.Source);
                         Console.WriteLine("e.stacktrace: " + e.StackTrace);
                         _response.StatusCode = 400;
-                        _response.SetContent(Environment.NewLine + "Error while requesting trading deals." + Environment.NewLine);
+                        _response.SetContent("Error while requesting trading deals.");
                     }
                     break;
 
                 case "POST":
                     try {
 
-                        string token = _request.Headers["authorization"];
-                        var tokenWithoutBasic = token.Remove(0, 6);
-                        var tokenExists = userDBController.VerifyUserToken(tokenWithoutBasic);
-
-                        if (!_request.Headers.ContainsKey("authorization") || tokenExists != true) {
-                            _response.StatusCode = 401;
-                            _response.SetContent(Environment.NewLine + "Unauthorized" + Environment.NewLine);
+                        bool Authentication = userDBController.AuthenticateUser(_request.Headers);
+                        if (!Authentication) {
+                            _response.UnauthenticatedUser();
                             return;
                         }
 
+                        string token = _request.Headers["authorization"];
                         var currentUser = userDBController.GetByToken(token);
 
-                        dynamic tempType = new { id = "", cardToTrade = "", Type = "", DamageRequirement ="" };
-                        dynamic tradingDeal = JsonConvert.DeserializeAnonymousType(_request.ContentString, tempType);
+                        if (_request.Url.Segments.Length == 1) {
 
-                        var damageRequirement = String.IsNullOrEmpty(tradingDeal.DamageRequirement) ? "15" : tradingDeal.DamageRequirement;
-                        deckDBController.CreateTradingDeal(tradingDeal.id, currentUser.Id, tradingDeal.cardToTrade, tradingDeal.Type, damageRequirement);
-                        _response.StatusCode = 200;
-                        _response.SetContent(Environment.NewLine + "Trade created successfully." + Environment.NewLine);
+                            dynamic tempType = new { id = "", cardToTrade = "", Type = "", DamageRequirement = "" };
+                            dynamic tradingDeal = JsonConvert.DeserializeAnonymousType(_request.ContentString, tempType);
+
+                            var damageRequirement = String.IsNullOrEmpty(tradingDeal.DamageRequirement) ? "15" : tradingDeal.DamageRequirement;
+                            bool success = deckDBController.CreateTradingDeal(tradingDeal.id, currentUser.Id, tradingDeal.cardToTrade, tradingDeal.Type, damageRequirement);
+                            if (success) {
+                                _response.StatusCode = 200;
+                                _response.SetContent("Trade created successfully.");
+                            } else {
+                                _response.StatusCode = 400;
+                                _response.SetContent("Error while creating trade, selected card is currently in Deck.");
+                            }
+
+                        } else {
+
+                            string tmpOffer =_request.ContentString;
+                            var length = tmpOffer.Length;
+                            string offeredCard = tmpOffer.Substring(1, length - 2);
+
+                            string tradingId = _request.Url.Segments[1];
+                            var tradeSuccess = deckDBController.TradeCards(tradingId, offeredCard, currentUser.Id);
+
+                            if (tradeSuccess) {
+
+                                _response.StatusCode = 200;
+                                _response.SetContent("Cards traded successfully.");
+                            } else {
+
+                                _response.StatusCode = 400;
+                                _response.SetContent("Buyer and Seller identical or offered Card is currently in Deck.");
+                            }
+
+                            
+                        }
 
                     } catch (Exception e) {
                         Console.WriteLine("e message: " + e.Message);
                         Console.WriteLine(" e source: " + e.Source);
                         Console.WriteLine("e.stacktrace: " + e.StackTrace);
                         _response.StatusCode = 400;
-                        _response.SetContent(Environment.NewLine + "Insufficient Parameters for creating trading deal." + Environment.NewLine);
+                        _response.SetContent("Insufficient Parameters for creating trading deal.");
                     }
                     break;
 
                 case "DELETE":
                     try {
 
-                        string token = _request.Headers["authorization"];
-                        var tokenWithoutBasic = token.Remove(0, 6);
-                        var tokenExists = userDBController.VerifyUserToken(tokenWithoutBasic);
-
-                        if (!_request.Headers.ContainsKey("authorization") || tokenExists != true) {
-                            _response.StatusCode = 401;
-                            _response.SetContent(Environment.NewLine + "Unable to delete trading deal." + Environment.NewLine);
+                        bool Authentication = userDBController.AuthenticateUser(_request.Headers);
+                        if (!Authentication) {
+                            _response.UnauthenticatedUser();
                             return;
                         }
 
                         if (_request.Url.Segments.Length == 1) {
-
                             _response.StatusCode = 400;
-                            _response.SetContent(Environment.NewLine + "Parameter missing: Trading ID." + Environment.NewLine);
+                            _response.SetContent("Parameter missing: Trading ID.");
                         }
 
                         string tradingId = _request.Url.Segments[1];
 
                         deckDBController.DeleteTradingDeal(tradingId);
                         _response.StatusCode = 200;
-                        _response.SetContent(Environment.NewLine + "Trade deleted successfully." + Environment.NewLine);
+                        _response.SetContent("Trade deleted successfully.");
 
                     } catch (Exception e) {
                         Console.WriteLine("e message: " + e.Message);
                         Console.WriteLine(" e source: " + e.Source);
                         Console.WriteLine("e.stacktrace: " + e.StackTrace);
                         _response.StatusCode = 400;
-                        _response.SetContent(Environment.NewLine + "Invalid Trading ID entered." + Environment.NewLine);
+                        _response.SetContent("Invalid Trading ID entered.");
                     }
                     break;
 
                 default:
-                    _response.invalidURL();
+                    _response.InvalidURL();
                     break;
             }
         }

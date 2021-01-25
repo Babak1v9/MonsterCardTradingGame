@@ -12,8 +12,8 @@ namespace MyServer.Classes.RequestHandlers {
         private Request _request;
         private Response _response;
         private string _responseJson;
-        private DeckDataBaseController _deckDatabaseController = new DeckDataBaseController();
-        private UserDatabaseController _userDatabaseController = new UserDatabaseController();
+        private DeckDataBaseController deckDBController = new DeckDataBaseController();
+        private UserDatabaseController userDBController = new UserDatabaseController();
 
         public Request Request => _request;
 
@@ -31,25 +31,22 @@ namespace MyServer.Classes.RequestHandlers {
                 case "GET":
                     try {
 
-                        string token = _request.Headers["authorization"];
-
-                        var tokenWithoutBasic = token.Remove(0, 6);
-                        var tokenExists = _userDatabaseController.VerifyUserToken(tokenWithoutBasic);
-
-                        if (!_request.Headers.ContainsKey("authorization") || tokenExists != true) {
-                            _response.StatusCode = 401;
-                            _response.SetContent("Unauthorized");
+                        bool Authentication = userDBController.AuthenticateUser(_request.Headers);
+                        if (!Authentication) {
+                            _response.UnauthenticatedUser();
                             return;
                         }
+
+                        string token = _request.Headers["authorization"];
 
                         if (_request.Url.Parameter.ContainsKey("format") && _request.Url.Parameter["format"].Equals("plain")) {
                             _response.ContentType = "text/plain";
                         }
 
-                        var user = _userDatabaseController.GetByToken(token);
+                        var user = userDBController.GetByToken(token);
                         var userId = user.Id;
 
-                        user.Deck = _deckDatabaseController.GetDeck(userId);
+                        user.Deck = deckDBController.GetDeck(userId);
 
                         if (user == null) {
                             _response.StatusCode = 404;
@@ -74,7 +71,7 @@ namespace MyServer.Classes.RequestHandlers {
                         string token = _request.Headers["authorization"];
 
                         var tokenWithoutBasic = token.Remove(0, 6);
-                        var tokenExists = _userDatabaseController.VerifyUserToken(tokenWithoutBasic);
+                        var tokenExists = userDBController.VerifyUserToken(tokenWithoutBasic);
 
                         if (!_request.Headers.ContainsKey("authorization") || tokenExists != true) {
                             _response.StatusCode = 401;
@@ -86,18 +83,18 @@ namespace MyServer.Classes.RequestHandlers {
                         Console.WriteLine(Cards.Length);
                         if (Cards.Length == 4) {
 
-                            var user = _userDatabaseController.GetByToken(token);
+                            var user = userDBController.GetByToken(token);
                             var userId = user.Id;
 
-                            var doesExist =_deckDatabaseController.checkUserDeck(userId);
+                            var doesExist = deckDBController.checkUserDeck(userId);
 
                             if (doesExist != true) {
-                                _deckDatabaseController.CardsToDeck(Cards, userId);
+                                deckDBController.CardsToDeck(Cards, userId);
                                 _response.StatusCode = 200;
                                 _response.SetContent("Deck created.");
                             } else {
 
-                                user.Deck = _deckDatabaseController.GetDeck(userId);
+                                user.Deck = deckDBController.GetDeck(userId);
 
                                 _responseJson = System.Text.Json.JsonSerializer.Serialize(user.Deck);
                                 _response.StatusCode = 200;
@@ -120,7 +117,7 @@ namespace MyServer.Classes.RequestHandlers {
                     break;
 
                 default:
-                    _response.invalidURL();
+                    _response.InvalidURL();
                     break;
             }
         }

@@ -79,13 +79,17 @@ namespace _Server.Classes {
             }
         }
 
-        public void invalidURL() {
+        public void InvalidURL() {
             StatusCode = 404;
-            SetContent(Environment.NewLine + "404. That's an error. The requested URL was not found on this server." + Environment.NewLine);
+            SetContent("404. That's an error. The requested URL was not found on this server.");
+        }
+        public void UnauthenticatedUser() {
+            StatusCode = 401;
+            SetContent("Unauthorized.");
         }
 
         public void SetContent(string content) {
-            _content = content;
+            _content = Environment.NewLine + content + Environment.NewLine;
             _headers["Content-Length"] = $"{_content.Length}";
         }
 
@@ -96,7 +100,7 @@ namespace _Server.Classes {
 
         public void SetContent(Stream stream) {
             var reader = new StreamReader(stream);
-            _content = reader.ReadToEnd();
+            _content = Environment.NewLine + reader.ReadToEnd() + Environment.NewLine;
             _headers["Content-Length"] = $"{_content.Length}";
         }
 
