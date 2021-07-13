@@ -13,6 +13,6 @@ PW = swe
 
 Through IDE or Myserver.exe
 
-## Time Effor
+## Time Effort
 
 ~ 30 hours
